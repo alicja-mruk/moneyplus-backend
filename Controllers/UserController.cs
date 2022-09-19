@@ -9,7 +9,7 @@ namespace AlicjowyBackendv3.Controllers
     public class UserController : Controller
     {
         [Route("/api/profile/{id?}")]
-        [HttpGet("{id}")]
+        //[HttpGet("{id}")]
         public IEnumerable<UserModel> GET(int? id)
         {
             List<UserModel> show_users = new List<UserModel>();

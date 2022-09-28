@@ -1,6 +1,6 @@
 ﻿using AlicjowyBackendv3.Models;
 
-namespace AlicjowyBackendv3
+namespace AlicjowyBackendv3.Helpers
 {
     public class RegisterDataTransferObject : UserModel
     {

@@ -1,4 +1,4 @@
-﻿namespace AlicjowyBackendv3
+﻿namespace AlicjowyBackendv3.Helpers
 {
     public class Tokens
     {

@@ -1,4 +1,5 @@
-﻿using AlicjowyBackendv3.Models;
+﻿using AlicjowyBackendv3.Helpers;
+using AlicjowyBackendv3.Models;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.IdentityModel.Tokens;
 using Newtonsoft.Json.Linq;
@@ -11,7 +12,7 @@ using System.Security.Claims;
 using System.Security.Cryptography;
 using System.Text;
 
-namespace AlicjowyBackendv3
+namespace AlicjowyBackendv3.AdditionalFun
 {
     public class LoginRegister : Controller
     {
@@ -40,7 +41,7 @@ namespace AlicjowyBackendv3
             reader.Read();
             if (reader.HasRows)
             {
-                user.userId = Convert.ToInt32(reader["user_id"]);
+                user.userGuid = reader["user_guid"].ToString();
                 user.firstName = reader["first_name"].ToString();
                 user.lastName = reader["last_name"].ToString();
                 user.passwordHash = Convert.FromBase64String(reader["password_hash"].ToString());
@@ -59,7 +60,7 @@ namespace AlicjowyBackendv3
                 token.accessToken = CreateToken(user);
                 RefreshToken fulltoken = GenerateRefreshToken(user);
                 token.refreshToken = fulltoken.Token;
-                cmd.CommandText = "UPDATE users SET refresh_token = '" + fulltoken.Token + "', token_expires = '" + fulltoken.Expires + "' WHERE user_id = " + user.userId;
+                cmd.CommandText = "UPDATE users SET refresh_token = '" + fulltoken.Token + "', token_expires = '" + fulltoken.Expires + "' WHERE user_guid = '" + user.userGuid + "'";
                 cmd.ExecuteReader();
                 return Ok(token);
             }
@@ -87,19 +88,19 @@ namespace AlicjowyBackendv3
             NpgsqlCommand cmd = new NpgsqlCommand();
             cmd.Connection = conn;
             cmd.CommandType = CommandType.Text;
-            cmd.CommandText = "SELECT MAX(user_id) FROM users";
-            NpgsqlDataReader check = cmd.ExecuteReader();
-            check.Read();
-            if (check["max"] != DBNull.Value)
-            {
-                check.Close();
-                cmd.CommandText = "INSERT INTO users(user_id, first_name, last_name, password_hash, password_salt, age, email) VALUES ((SELECT MAX(user_id)+1 FROM users), '" + user.firstName + "', '" + user.lastName + "', '" + Convert.ToBase64String(user.passwordHash) + "', '" + Convert.ToBase64String(user.passwordSalt) + "', " + user.age + ", '" + user.email + "')";
-            }
-            else
-            {
-                check.Close();
-                cmd.CommandText = "INSERT INTO users(first_name, last_name, password_hash, password_salt, age, email) VALUES ('" + user.firstName + "', '" + user.lastName + "', '" + Convert.ToBase64String(user.passwordHash) + "', '" + Convert.ToBase64String(user.passwordSalt) + "', " + user.age + ", '" + user.email + "')";
-            }
+            //cmd.CommandText = "SELECT MAX(user_id) FROM users";
+            //NpgsqlDataReader check = cmd.ExecuteReader();
+            //check.Read();
+            //if (check["max"] != DBNull.Value)
+            //{
+                //check.Close();
+                //cmd.CommandText = "INSERT INTO users(user_id, first_name, last_name, password_hash, password_salt, age, email) VALUES ((SELECT MAX(user_id)+1 FROM users), '" + user.firstName + "', '" + user.lastName + "', '" + Convert.ToBase64String(user.passwordHash) + "', '" + Convert.ToBase64String(user.passwordSalt) + "', " + user.age + ", '" + user.email + "')";
+            //}
+            //else
+            //{
+                //check.Close();
+                cmd.CommandText = "INSERT INTO users(user_guid, first_name, last_name, password_hash, password_salt, age, email) VALUES ('"+ Guid.NewGuid().ToString() + "', '" + user.firstName + "', '" + user.lastName + "', '" + Convert.ToBase64String(user.passwordHash) + "', '" + Convert.ToBase64String(user.passwordSalt) + "', " + user.age + ", '" + user.email + "')";
+            //}
             try
             {
                 NpgsqlDataReader reader = cmd.ExecuteReader();
@@ -108,8 +109,8 @@ namespace AlicjowyBackendv3
             {
                 if (ex.SqlState.Equals("23505"))
                     return Conflict(new ResponseMessageStatus { StatusCode = "409", Message = "User with this email address already exists" });
-            }            
-            return Created(String.Empty, new ResponseMessageStatus { StatusCode = "201", Message = "User created" });
+            }
+            return Created(string.Empty, new ResponseMessageStatus { StatusCode = "201", Message = "User created" });
         }
         #endregion
 
@@ -119,7 +120,7 @@ namespace AlicjowyBackendv3
             using (var hmac = new HMACSHA512())
             {
                 passwordSalt = hmac.Key;
-                passwordHash = hmac.ComputeHash(System.Text.Encoding.UTF8.GetBytes(password));
+                passwordHash = hmac.ComputeHash(Encoding.UTF8.GetBytes(password));
             }
         }
 
@@ -127,7 +128,7 @@ namespace AlicjowyBackendv3
         {
             using (var hmac = new HMACSHA512(passwordSalt))
             {
-                var computedHash = hmac.ComputeHash(System.Text.Encoding.UTF8.GetBytes(password));
+                var computedHash = hmac.ComputeHash(Encoding.UTF8.GetBytes(password));
                 return computedHash.SequenceEqual(passwordHash);
             }
         }
@@ -150,9 +151,9 @@ namespace AlicjowyBackendv3
             NpgsqlDataReader reader = cmd.ExecuteReader();
             reader.Read();
 
-            if(reader.HasRows)
+            if (reader.HasRows)
             {
-                user.userId = Convert.ToInt32(reader["user_id"]);
+                user.userGuid = reader["user_guid"].ToString();
                 user.refreshToken = reader["refresh_token"].ToString();
                 user.tokenExpires = Convert.ToDateTime(reader["token_expires"].ToString());
                 reader.Close();
@@ -169,7 +170,7 @@ namespace AlicjowyBackendv3
             tokens.accessToken = CreateToken(user);
             RefreshToken fulltoken = GenerateRefreshToken(user);
             tokens.refreshToken = fulltoken.Token;
-            cmd.CommandText = "UPDATE users SET refresh_token = '" + fulltoken.Token + "', token_expires = '" + fulltoken.Expires + "' WHERE user_id = " + user.userId;
+            cmd.CommandText = "UPDATE users SET refresh_token = '" + fulltoken.Token + "', token_expires = '" + fulltoken.Expires + "' WHERE user_guid = '" + user.userGuid + "'";
             cmd.ExecuteReader();
 
             return Ok(tokens);
@@ -194,10 +195,10 @@ namespace AlicjowyBackendv3
         {
             List<Claim> claims = new List<Claim>
             {
-                new Claim("user id", user.userId.ToString())
+                new Claim("user guid", user.userGuid)
             };
 
-            var key = new SymmetricSecurityKey(System.Text.Encoding.UTF8.GetBytes(_configuration.GetSection("AppSettings:Token").Value));
+            var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_configuration.GetSection("AppSettings:Token").Value));
             var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha512Signature);
             var token = new JwtSecurityToken(
                 claims: claims,

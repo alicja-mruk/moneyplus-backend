@@ -11,13 +11,13 @@ namespace AlicjowyBackendv3.Controllers
     {
         [Route("/api/categories")]
         [HttpGet]
-        //[Authorize]
+        [Authorize]
         public List<CategoriesModel> GET()
         {
             //var id = User.FindFirstValue("user id");
             List<CategoriesModel> get_categories = new List<CategoriesModel>();
-            NpgsqlConnection conn = new NpgsqlConnection("User ID=postgres;Password=123;Host=localhost;Port=5432;Database=moneyplusAlpha;");
-            //NpgsqlConnection conn = new NpgsqlConnection("User ID=krzysztof_golusinski@moneyplus-server;Password=Am22Kg23;Host=moneyplus-server.postgres.database.azure.com;Port=5432;Database=moneyplus_db;");
+            //NpgsqlConnection conn = new NpgsqlConnection("User ID=postgres;Password=123;Host=localhost;Port=5432;Database=moneyplusAlpha;");
+            NpgsqlConnection conn = new NpgsqlConnection("User ID=krzysztof_golusinski@moneyplus-server;Password=Am22Kg23;Host=moneyplus-server.postgres.database.azure.com;Port=5432;Database=moneyplus_db;");
             conn.Open();
             NpgsqlCommand cmd = new NpgsqlCommand();
             cmd.Connection = conn;
@@ -38,6 +38,14 @@ namespace AlicjowyBackendv3.Controllers
 
             return get_categories;
             //return StatusCode(501, new ResponseMessageStatus { StatusCode = "501", Message = "Jeszcze ni mo, jak bedzie to bedzie. Bądź cierpliwa" });
+        }
+
+        [Route("/api/categories/add")]
+        [HttpGet]
+        //[Authorize]
+        public IActionResult AddCategory()
+        {
+            return View();
         }
     }
 }

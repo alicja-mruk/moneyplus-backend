@@ -3,9 +3,98 @@
 }
 
 <div class="text-center">
-    <h1 style="color:white" class="display-4">Welcome</h1>
-    <p style="color:white">Learn about <a href="https://docs.microsoft.com/aspnet/core">building Web apps with ASP.NET Core</a>.</p>
+    <!--<h1 style="color:white" class="display-4">Welcome</h1>-->
+    <h1 style="color:white" class="display-4">Welcome to the MoneyPlus API</h1>
+    <!--<p style="color:white">Learn about <a href="https://docs.microsoft.com/aspnet/core">building Web apps with ASP.NET Core</a>.</p>-->
+    <br />
+
+    <p style="color:white">This API is a part of MoneyPlus application. Below you can find a list of available endpoints. Endpoints are protected and only authorized users can have access to them so don't worry if you get error after entry to selected endpoint.</p>
+    
+    <br />
+
+    <table>
+        <tr>
+            <th>Endpoint Path</th>
+            <th>Method Type</th>
+            <th>Description</th>
+        </tr>
+        <tr>
+            <td>/api/register</td>
+            <td>POST</td>
+            <td>Method allow to create new account. You have to send data in json format like below:<br/>{"firstName" : string, "lastName" : string, "password" : string, "age" : int, "email" : string}</td>
+        </tr>
+        <tr>
+            <td>/api/login</td>
+            <td>POST</td>
+            <td>Method allow to login to application. You have to send data in json format like below:<br/>{"email" : string, "password" : string}</td>
+        </tr>
+        <tr>
+            <td>/api/profile</td>
+            <td>GET</td>
+            <td>Method return informations about user. Informations are send in json format like below:<br/>{"userGuid" : string, "firstName" : string, "lastName" : string, "age" : int, "email" : string}</td>
+        </tr>
+        <tr>
+            <td>/api/refresh</td>
+            <td>POST</td>
+            <td>This endpoint allow to generate new access token and refresh token. In this case you have to send in header your refresh token in "refreshToken" field</td>
+        </tr>
+        <tr>
+            <td>/api/categories</td>
+            <td>GET</td>
+            <td>Method return informations about all available categories. Informations are send in json format like below:<br/>{"categoryId" : int, "categoryName" : string, "iconName" : string, "color" : string, "typeOfCategory" : string}</td>
+        </tr>
+        <tr>
+            <td>/api/expenses</td>
+            <td>GET</td>
+            <td>Method return informations about all expenses of selected user. Informations are send in json format like below:<br/>{"categoryName" : string, "expenseGuid" : string, "expenseName" : string, "expenseValue" : string, "creationDate" : DateTime}</td>
+        </tr>
+        <tr>
+            <td>/api/expenses/add</td>
+            <td>POST</td>
+            <td>Method allow to add new expense. You have to send data in json format like below:<br/>{"categoryId" : int, "expenseName" : string, "expenseValue" : string}</td>
+        </tr>
+        <tr>
+            <td>/api/expenses/remove</td>
+            <td>POST</td>
+            <td>Method allow to remove existing expense. You have to send data in json format like below:<br />{"expenseGuid" : string}</td>
+        </tr>
+        <tr>
+            <td>/api/receipts</td>
+            <td>GET</td>
+            <td>Method return informations about all receipts of selected user. Informations are send in json format like below:<br/>{"categoryName" : string, "receiptsGuid" : string, "receiptsName" : string, "receiptsValue" : string, "creationDate" : DateTime}</td>
+        </tr>
+        <tr>
+            <td>/api/receipts/add</td>
+            <td>POST</td>
+            <td>Method allow to add new receipts. You have to send data in json format like below:<br />{"categoryId" : int, "receiptsName" : string, "receiptsValue" : string}</td>
+        </tr>
+        <tr>
+            <td>/api/receipts/remove</td>
+            <td>POST</td>
+            <td>Method allow to remove existing receipt. You have to send data in json format like below:<br />{"receiptsGuid" : string}</td>
+        </tr>
+        <tr>
+            <td>/api/settings</td>
+            <td>POST</td>
+            <td>Not implemented yet but if you really want to check what is there - no problem, you can do this ¯\_(ツ)_/¯</td>
+        </tr>
+        <tr>
+            <td>/api/categories/add</td>
+            <td>POST</td>
+            <td>This endpoint could allow to create a new category by user but unfortunately it doesn't work and if you want to know why, you have to go to this endpoint ( ͡° ͜ʖ ͡°)</td>
+        </tr>
+    </table>
+    <style>
+        body {
+            color: white;
+            background-color: black;
+        }
+    </style>
 </div>
+
+<br/>
+
+<p style="color:white">Created with ❤️ to money :D</p>
 
 <style>
     body {

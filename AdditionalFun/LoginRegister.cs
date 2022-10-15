@@ -30,8 +30,8 @@ namespace AlicjowyBackendv3.AdditionalFun
         {
             UserModel user = new UserModel();
 
-            NpgsqlConnection conn = new NpgsqlConnection("User ID=postgres;Password=123;Host=localhost;Port=5432;Database=moneyplusAlpha;");
-            //NpgsqlConnection conn = new NpgsqlConnection("User ID=krzysztof_golusinski@moneyplus-server;Password=Am22Kg23;Host=moneyplus-server.postgres.database.azure.com;Port=5432;Database=moneyplus_db;");
+            //NpgsqlConnection conn = new NpgsqlConnection("User ID=postgres;Password=123;Host=localhost;Port=5432;Database=moneyplusAlpha;");
+            NpgsqlConnection conn = new NpgsqlConnection("User ID=krzysztof_golusinski@moneyplus-server;Password=Am22Kg23;Host=moneyplus-server.postgres.database.azure.com;Port=5432;Database=moneyplus_db;");
             conn.Open();
             NpgsqlCommand cmd = new NpgsqlCommand();
             cmd.Connection = conn;
@@ -60,7 +60,7 @@ namespace AlicjowyBackendv3.AdditionalFun
                 token.accessToken = CreateToken(user);
                 RefreshToken fulltoken = GenerateRefreshToken(user);
                 token.refreshToken = fulltoken.Token;
-                cmd.CommandText = "UPDATE users SET refresh_token = '" + fulltoken.Token + "', token_expires = '" + fulltoken.Expires + "' WHERE user_guid = '" + user.userGuid + "'";
+                cmd.CommandText = "UPDATE users SET refresh_token = '" + fulltoken.Token + "', token_expires = '" + fulltoken.Expires.ToString("yyyy.MM.dd HH:mm:ss") + "' WHERE user_guid = '" + user.userGuid + "'"; //kurwa kto to projektował, żeby w dedykowanym środowisku silnik bazodanowy sobie sam parsował fulltoken.Expires, a tutaj trzeba to ręcznie robić ... postgres 11 < postgres 12
                 cmd.ExecuteReader();
                 return Ok(token);
             }
@@ -82,8 +82,8 @@ namespace AlicjowyBackendv3.AdditionalFun
             user.age = request.age;
             user.email = request.email;
 
-            NpgsqlConnection conn = new NpgsqlConnection("User ID=postgres;Password=123;Host=localhost;Port=5432;Database=moneyplusAlpha;");
-            //NpgsqlConnection conn = new NpgsqlConnection("User ID=krzysztof_golusinski@moneyplus-server;Password=Am22Kg23;Host=moneyplus-server.postgres.database.azure.com;Port=5432;Database=moneyplus_db;");
+            //NpgsqlConnection conn = new NpgsqlConnection("User ID=postgres;Password=123;Host=localhost;Port=5432;Database=moneyplusAlpha;");
+            NpgsqlConnection conn = new NpgsqlConnection("User ID=krzysztof_golusinski@moneyplus-server;Password=Am22Kg23;Host=moneyplus-server.postgres.database.azure.com;Port=5432;Database=moneyplus_db;");
             conn.Open();
             NpgsqlCommand cmd = new NpgsqlCommand();
             cmd.Connection = conn;
@@ -141,8 +141,8 @@ namespace AlicjowyBackendv3.AdditionalFun
         {
             UserModel user = new UserModel();
 
-            NpgsqlConnection conn = new NpgsqlConnection("User ID=postgres;Password=123;Host=localhost;Port=5432;Database=moneyplusAlpha;");
-            //NpgsqlConnection conn = new NpgsqlConnection("User ID=krzysztof_golusinski@moneyplus-server;Password=Am22Kg23;Host=moneyplus-server.postgres.database.azure.com;Port=5432;Database=moneyplus_db;");
+            //NpgsqlConnection conn = new NpgsqlConnection("User ID=postgres;Password=123;Host=localhost;Port=5432;Database=moneyplusAlpha;");
+            NpgsqlConnection conn = new NpgsqlConnection("User ID=krzysztof_golusinski@moneyplus-server;Password=Am22Kg23;Host=moneyplus-server.postgres.database.azure.com;Port=5432;Database=moneyplus_db;");
             conn.Open();
             NpgsqlCommand cmd = new NpgsqlCommand();
             cmd.Connection = conn;
@@ -170,7 +170,7 @@ namespace AlicjowyBackendv3.AdditionalFun
             tokens.accessToken = CreateToken(user);
             RefreshToken fulltoken = GenerateRefreshToken(user);
             tokens.refreshToken = fulltoken.Token;
-            cmd.CommandText = "UPDATE users SET refresh_token = '" + fulltoken.Token + "', token_expires = '" + fulltoken.Expires + "' WHERE user_guid = '" + user.userGuid + "'";
+            cmd.CommandText = "UPDATE users SET refresh_token = '" + fulltoken.Token + "', token_expires = '" + fulltoken.Expires.ToString("yyyy.MM.dd HH:mm:ss") + "' WHERE user_guid = '" + user.userGuid + "'";
             cmd.ExecuteReader();
 
             return Ok(tokens);

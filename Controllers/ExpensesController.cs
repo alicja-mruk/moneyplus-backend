@@ -18,13 +18,13 @@ namespace AlicjowyBackendv3.Controllers
         {
             var guid = User.FindFirstValue("user guid");
             List<ExpensesReadDataTransferObject> get_expenses = new List<ExpensesReadDataTransferObject>();
-            NpgsqlConnection conn = new NpgsqlConnection("User ID=postgres;Password=123;Host=localhost;Port=5432;Database=moneyplusAlpha;");
-            //NpgsqlConnection conn = new NpgsqlConnection("User ID=krzysztof_golusinski@moneyplus-server;Password=Am22Kg23;Host=moneyplus-server.postgres.database.azure.com;Port=5432;Database=moneyplus_db;");
+            //NpgsqlConnection conn = new NpgsqlConnection("User ID=postgres;Password=123;Host=localhost;Port=5432;Database=moneyplusAlpha;");
+            NpgsqlConnection conn = new NpgsqlConnection("User ID=krzysztof_golusinski@moneyplus-server;Password=Am22Kg23;Host=moneyplus-server.postgres.database.azure.com;Port=5432;Database=moneyplus_db;");
             conn.Open();
             NpgsqlCommand cmd = new NpgsqlCommand();
             cmd.Connection = conn;
             cmd.CommandType = CommandType.Text;
-            cmd.CommandText = "SELECT expenses.expense_guid, expenses.expense_name, categories.category_name, expenses.expense_value, expenses.creationdate FROM expenses INNER JOIN categories ON expenses.category_id=categories.category_id WHERE user_guid = '" + guid + "'";
+            cmd.CommandText = "SELECT expenses.expense_guid, expenses.expense_name, categories.category_name, expenses.expense_value, expenses.creation_date FROM expenses INNER JOIN categories ON expenses.category_id=categories.category_id WHERE user_guid = '" + guid + "'";
             NpgsqlDataReader reader = cmd.ExecuteReader();
 
             while (reader.Read())
@@ -34,7 +34,7 @@ namespace AlicjowyBackendv3.Controllers
                 expenses.categoryName = reader["category_name"].ToString();
                 expenses.expenseName = reader["expense_name"].ToString();
                 expenses.expenseValue = reader["expense_value"].ToString();
-                expenses.creationDate = Convert.ToDateTime(reader["creationdate"].ToString());// w produkcyjnej do dodania _ między słowami
+                expenses.creationDate = Convert.ToDateTime(reader["creation_date"].ToString());
                 get_expenses.Add(expenses);
             }
 
@@ -61,13 +61,13 @@ namespace AlicjowyBackendv3.Controllers
                 return BadRequest(new ResponseMessageStatus { StatusCode = "400", Message = "Invalid data type" });
             }
 
-            NpgsqlConnection conn = new NpgsqlConnection("User ID=postgres;Password=123;Host=localhost;Port=5432;Database=moneyplusAlpha;");
-            //NpgsqlConnection conn = new NpgsqlConnection("User ID=krzysztof_golusinski@moneyplus-server;Password=Am22Kg23;Host=moneyplus-server.postgres.database.azure.com;Port=5432;Database=moneyplus_db;");
+            //NpgsqlConnection conn = new NpgsqlConnection("User ID=postgres;Password=123;Host=localhost;Port=5432;Database=moneyplusAlpha;");
+            NpgsqlConnection conn = new NpgsqlConnection("User ID=krzysztof_golusinski@moneyplus-server;Password=Am22Kg23;Host=moneyplus-server.postgres.database.azure.com;Port=5432;Database=moneyplus_db;");
             conn.Open();
             NpgsqlCommand cmd = new NpgsqlCommand();
             cmd.Connection = conn;
             cmd.CommandType = CommandType.Text;
-            cmd.CommandText = "INSERT INTO expenses(expense_guid, user_guid, category_id, expense_name, expense_value, creationdate) VALUES ('" + Guid.NewGuid().ToString() + "', '" + guid + "', " + expens.categoryId + ", '" + expens.expenseName + "', '" + expens.expenseValue + "', '" + expens.creationDate + "')";
+            cmd.CommandText = "INSERT INTO expenses(expense_guid, user_guid, category_id, expense_name, expense_value, creation_date) VALUES ('" + Guid.NewGuid().ToString() + "', '" + guid + "', " + expens.categoryId + ", '" + expens.expenseName + "', '" + expens.expenseValue + "', '" + expens.creationDate.ToString("yyyy.MM.dd HH:mm:ss") + "')";
             //try
             //{
                 NpgsqlDataReader reader = cmd.ExecuteReader();
@@ -96,8 +96,8 @@ namespace AlicjowyBackendv3.Controllers
                 return BadRequest(new ResponseMessageStatus { StatusCode = "400", Message = "Invalid data type" });
             }
 
-            NpgsqlConnection conn = new NpgsqlConnection("User ID=postgres;Password=123;Host=localhost;Port=5432;Database=moneyplusAlpha;");
-            //NpgsqlConnection conn = new NpgsqlConnection("User ID=krzysztof_golusinski@moneyplus-server;Password=Am22Kg23;Host=moneyplus-server.postgres.database.azure.com;Port=5432;Database=moneyplus_db;");
+            //NpgsqlConnection conn = new NpgsqlConnection("User ID=postgres;Password=123;Host=localhost;Port=5432;Database=moneyplusAlpha;");
+            NpgsqlConnection conn = new NpgsqlConnection("User ID=krzysztof_golusinski@moneyplus-server;Password=Am22Kg23;Host=moneyplus-server.postgres.database.azure.com;Port=5432;Database=moneyplus_db;");
             conn.Open();
             NpgsqlCommand cmd = new NpgsqlCommand();
             cmd.Connection = conn;

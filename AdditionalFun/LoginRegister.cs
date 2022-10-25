@@ -41,7 +41,7 @@ namespace AlicjowyBackendv3.AdditionalFun
             reader.Read();
             if (reader.HasRows)
             {
-                user.userGuid = reader["user_guid"].ToString();
+                user.id = reader["user_guid"].ToString();
                 user.firstName = reader["first_name"].ToString();
                 user.lastName = reader["last_name"].ToString();
                 user.passwordHash = Convert.FromBase64String(reader["password_hash"].ToString());
@@ -60,7 +60,7 @@ namespace AlicjowyBackendv3.AdditionalFun
                 token.accessToken = CreateToken(user);
                 RefreshToken fulltoken = GenerateRefreshToken(user);
                 token.refreshToken = fulltoken.Token;
-                cmd.CommandText = "UPDATE users SET refresh_token = '" + fulltoken.Token + "', token_expires = '" + fulltoken.Expires.ToString("yyyy.MM.dd HH:mm:ss") + "' WHERE user_guid = '" + user.userGuid + "'"; //kurwa kto to projektował, żeby w dedykowanym środowisku silnik bazodanowy sobie sam parsował fulltoken.Expires, a tutaj trzeba to ręcznie robić ... postgres 11 < postgres 12
+                cmd.CommandText = "UPDATE users SET refresh_token = '" + fulltoken.Token + "', token_expires = '" + fulltoken.Expires.ToString("yyyy.MM.dd HH:mm:ss") + "' WHERE user_guid = '" + user.id + "'"; //kurwa kto to projektował, żeby w dedykowanym środowisku silnik bazodanowy sobie sam parsował fulltoken.Expires, a tutaj trzeba to ręcznie robić ... postgres 11 < postgres 12
                 cmd.ExecuteReader();
                 return Ok(token);
             }
@@ -137,7 +137,7 @@ namespace AlicjowyBackendv3.AdditionalFun
         #region TokenOperations
         [Route("/api/refresh")]
         [HttpPost]
-        public async Task<ActionResult<string>> RefreshToken([FromHeader] string refreshToken)
+        public async Task<ActionResult<string>> RefreshToken([FromBody] Tokens refreshToken)
         {
             UserModel user = new UserModel();
 
@@ -147,13 +147,13 @@ namespace AlicjowyBackendv3.AdditionalFun
             NpgsqlCommand cmd = new NpgsqlCommand();
             cmd.Connection = conn;
             cmd.CommandType = CommandType.Text;
-            cmd.CommandText = "select * from Users where refresh_token = '" + refreshToken + "'";
+            cmd.CommandText = "select * from Users where refresh_token = '" + refreshToken.refreshToken + "'";
             NpgsqlDataReader reader = cmd.ExecuteReader();
             reader.Read();
 
             if (reader.HasRows)
             {
-                user.userGuid = reader["user_guid"].ToString();
+                user.id = reader["user_guid"].ToString();
                 user.refreshToken = reader["refresh_token"].ToString();
                 user.tokenExpires = Convert.ToDateTime(reader["token_expires"].ToString());
                 reader.Close();
@@ -162,7 +162,7 @@ namespace AlicjowyBackendv3.AdditionalFun
                 return BadRequest(new ResponseMessageStatus { StatusCode = "400", Message = "Invalid refresh token or token expired" });
 
             Tokens tokens = new Tokens();
-            if (!user.refreshToken.Equals(refreshToken) || user.tokenExpires < DateTime.Now)
+            if (!user.refreshToken.Equals(refreshToken.refreshToken) || user.tokenExpires < DateTime.Now)
             {
                 return BadRequest(new ResponseMessageStatus { StatusCode = "400", Message = "Invalid refresh token or token expired" });
             }
@@ -170,7 +170,7 @@ namespace AlicjowyBackendv3.AdditionalFun
             tokens.accessToken = CreateToken(user);
             RefreshToken fulltoken = GenerateRefreshToken(user);
             tokens.refreshToken = fulltoken.Token;
-            cmd.CommandText = "UPDATE users SET refresh_token = '" + fulltoken.Token + "', token_expires = '" + fulltoken.Expires.ToString("yyyy.MM.dd HH:mm:ss") + "' WHERE user_guid = '" + user.userGuid + "'";
+            cmd.CommandText = "UPDATE users SET refresh_token = '" + fulltoken.Token + "', token_expires = '" + fulltoken.Expires.ToString("yyyy.MM.dd HH:mm:ss") + "' WHERE user_guid = '" + user.id + "'";
             cmd.ExecuteReader();
 
             return Ok(tokens);
@@ -181,7 +181,7 @@ namespace AlicjowyBackendv3.AdditionalFun
             var refreshToken = new RefreshToken
             {
                 Token = Convert.ToBase64String(RandomNumberGenerator.GetBytes(64)),
-                Expires = DateTime.Now.AddMinutes(4),
+                Expires = DateTime.Now.AddDays(14),
                 Created = DateTime.Now
             };
 
@@ -195,14 +195,14 @@ namespace AlicjowyBackendv3.AdditionalFun
         {
             List<Claim> claims = new List<Claim>
             {
-                new Claim("user guid", user.userGuid)
+                new Claim("user guid", user.id)
             };
 
             var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_configuration.GetSection("AppSettings:Token").Value));
             var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha512Signature);
             var token = new JwtSecurityToken(
                 claims: claims,
-                expires: DateTime.Now.AddMinutes(2),
+                expires: DateTime.Now.AddDays(7),
                 signingCredentials: creds
                 );
             var jwt = new JwtSecurityTokenHandler().WriteToken(token);

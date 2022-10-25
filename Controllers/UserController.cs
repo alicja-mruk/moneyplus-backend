@@ -27,7 +27,7 @@ namespace AlicjowyBackendv3.Controllers
             NpgsqlDataReader reader = cmd.ExecuteReader();
             reader.Read();
 
-            show_user_profile.userGuid = reader["user_guid"].ToString();
+            show_user_profile.id = reader["user_guid"].ToString();
             show_user_profile.firstName = reader["first_name"].ToString();
             show_user_profile.lastName = reader["last_name"].ToString();
             show_user_profile.age = Convert.ToInt32(reader["age"]);

@@ -31,7 +31,7 @@
         <tr>
             <td>/api/profile</td>
             <td>GET</td>
-            <td>Method return informations about user. Informations are send in json format like below:<br/>{"userGuid" : string, "firstName" : string, "lastName" : string, "age" : int, "email" : string}</td>
+            <td>Method return informations about user. Informations are send in json format like below:<br/>{"id" : string, "firstName" : string, "lastName" : string, "age" : int, "email" : string}</td>
         </tr>
         <tr>
             <td>/api/refresh</td>
@@ -39,40 +39,40 @@
             <td>This endpoint allow to generate new access token and refresh token. In this case you have to send in header your refresh token in "refreshToken" field</td>
         </tr>
         <tr>
-            <td>/api/categories</td>
+            <td>/api/categories/{id?}</td>
             <td>GET</td>
-            <td>Method return informations about all available categories. Informations are send in json format like below:<br/>{"categoryId" : int, "categoryName" : string, "iconName" : string, "color" : string, "typeOfCategory" : string}</td>
+            <td>Method return informations about all available categories. If you add category id you will get informations only about selected category. Informations are send in json format like below:<br />{"id" : string, "categoryName" : string, "iconName" : string, "color" : string, "typeOfCategory" : string}</td>
         </tr>
         <tr>
-            <td>/api/expenses</td>
+            <td>/api/expenses/{id?}</td>
             <td>GET</td>
-            <td>Method return informations about all expenses of selected user. Informations are send in json format like below:<br/>{"categoryName" : string, "expenseGuid" : string, "expenseName" : string, "expenseValue" : string, "creationDate" : DateTime}</td>
+            <td>Method return informations about all expenses of selected user. If you add expense id you will get informations only about selected expense. Informations are send in json format like below:<br />{"category" : {"id" : string, "categoryName" : string, "iconName" : string, "color" : string, "typeOfCategory" : string}, "id" : string, "expenseName" : string, "expenseValue" : string, "creationDate" : DateTime}</td>
         </tr>
         <tr>
-            <td>/api/expenses/add</td>
-            <td>POST</td>
-            <td>Method allow to add new expense. You have to send data in json format like below:<br/>{"categoryId" : int, "expenseName" : string, "expenseValue" : string}</td>
+            <td>/api/expenses/edit</td>
+            <td>POST/PUT/DELETE</td>
+            <td>Methods allow to add new expense, remove expense and edit existing expense. For every method you have to send data in json format like below:<br />For POST method: {"categoryId" : int, "expenseName" : string, "expenseValue" : string}<br />For PUT method: {"id" : string, "categoryId" : int, "expenseName" : string, "expenseValue" : string}<br />For DELETE method: {"id" : string}</td>
         </tr>
-        <tr>
+@*        <tr>
             <td>/api/expenses/remove</td>
             <td>POST</td>
             <td>Method allow to remove existing expense. You have to send data in json format like below:<br />{"expenseGuid" : string}</td>
-        </tr>
+        </tr>*@
         <tr>
-            <td>/api/receipts</td>
+            <td>/api/receipts/{id?}</td>
             <td>GET</td>
-            <td>Method return informations about all receipts of selected user. Informations are send in json format like below:<br/>{"categoryName" : string, "receiptsGuid" : string, "receiptsName" : string, "receiptsValue" : string, "creationDate" : DateTime}</td>
+            <td>Method return informations about all receipts of selected user. If you add receipt id you will get informations only about selected receipt. Informations are send in json format like below:<br />{"category" : {"id" : string, "categoryName" : string, "iconName" : string, "color" : string, "typeOfCategory" : string}, "id" : string, "receiptsName" : string, "receiptsValue" : string, "creationDate" : DateTime}</td>
         </tr>
         <tr>
-            <td>/api/receipts/add</td>
-            <td>POST</td>
-            <td>Method allow to add new receipts. You have to send data in json format like below:<br />{"categoryId" : int, "receiptsName" : string, "receiptsValue" : string}</td>
+            <td>/api/receipts/edit</td>
+            <td>POST/PUT/DELETE</td>
+            <td>Methods allow to add new receipt, remove receipt and edit existing receipt. For every method you have to send data in json format like below:<br />For POST method: {"categoryId" : int, "receiptsName" : string, "receiptsValue" : string}<br />For PUT method: {"id" : string, "categoryId" : int, "receiptsName" : string, "receiptsValue" : string}<br />For DELETE method: {"id" : string}</td>
         </tr>
-        <tr>
+@*        <tr>
             <td>/api/receipts/remove</td>
             <td>POST</td>
             <td>Method allow to remove existing receipt. You have to send data in json format like below:<br />{"receiptsGuid" : string}</td>
-        </tr>
+        </tr>*@
         <tr>
             <td>/api/settings</td>
             <td>POST</td>

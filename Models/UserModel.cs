@@ -6,7 +6,7 @@ namespace AlicjowyBackendv3.Models
     public class UserModel
     {
         [Key]
-        public string userGuid { get; set; }
+        public string id { get; set; }
         public string firstName { get; set; }
         public string lastName { get; set; }
         [JsonIgnore]

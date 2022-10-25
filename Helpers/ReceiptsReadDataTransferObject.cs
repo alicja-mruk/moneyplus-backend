@@ -4,6 +4,7 @@ namespace AlicjowyBackendv3.Helpers
 {
     public class ReceiptsReadDataTransferObject : ReceiptsModel
     {
-        public string categoryName { get; set; }
+        //public string categoryName { get; set; }
+        public virtual CategoriesModel category { get; set; }
     }
 }

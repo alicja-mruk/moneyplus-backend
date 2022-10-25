@@ -9,10 +9,10 @@ namespace AlicjowyBackendv3.Controllers
 {
     public class CategoriesController : Controller
     {
-        [Route("/api/categories")]
+        [Route("/api/categories/{id?}")]
         [HttpGet]
         [Authorize]
-        public List<CategoriesModel> GET()
+        public List<CategoriesModel> GET(int? id)
         {
             //var id = User.FindFirstValue("user id");
             List<CategoriesModel> get_categories = new List<CategoriesModel>();
@@ -22,13 +22,16 @@ namespace AlicjowyBackendv3.Controllers
             NpgsqlCommand cmd = new NpgsqlCommand();
             cmd.Connection = conn;
             cmd.CommandType = CommandType.Text;
-            cmd.CommandText = "select * from categories";
+            if (id == null)
+                cmd.CommandText = "select * from categories";
+            else
+                cmd.CommandText = "select * from categories where category_id = " + id;
             NpgsqlDataReader reader = cmd.ExecuteReader();
 
             while(reader.Read())
             {
                 CategoriesModel category = new CategoriesModel();
-                category.categoryId = Convert.ToInt32(reader["category_id"]);
+                category.id = reader["category_id"].ToString();
                 category.categoryName = reader["category_name"].ToString();
                 category.iconName = reader["icon_name"].ToString();
                 category.color = reader["color"].ToString();

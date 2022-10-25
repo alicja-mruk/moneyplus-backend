@@ -1,11 +1,12 @@
 ﻿using System.ComponentModel.DataAnnotations;
+using System.Text.Json.Serialization;
 
 namespace AlicjowyBackendv3.Models
 {
     public class ReceiptsModel
     {
         [Key]
-        public string receiptsGuid { get; set; }
+        public string id { get; set; }
         //public string userGuid { get; set; }
         //public int categoryId { get; set; }
         public string receiptsName { get; set; }

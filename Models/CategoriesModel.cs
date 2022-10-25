@@ -5,7 +5,7 @@ namespace AlicjowyBackendv3.Models
     public class CategoriesModel
     {
         [Key]
-        public int categoryId { get; set; }
+        public string id { get; set; }
         public string categoryName { get; set; }
         public string iconName { get; set; }
         public string color { get; set; }

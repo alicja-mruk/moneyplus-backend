@@ -6,7 +6,7 @@ namespace AlicjowyBackendv3.Models
     public class ExpensesModel
     {
         [Key]
-        public string expenseGuid { get; set; }
+        public string id { get; set; }
         //[JsonIgnore]
         //public string userGuid { get; set; }
         //[JsonIgnore]

@@ -2,9 +2,8 @@
 
 namespace AlicjowyBackendv3.Helpers
 {
-    public class ExpensesReadDataTransferObject : ExpensesModel
+    public class ExpensesReadDataTransferObject : Expense
     {
-        //public string categoryName { get; set; }
-        public virtual CategoriesModel category { get; set; }
+        public CategoryExtension Category { get; set; }
     }
 }

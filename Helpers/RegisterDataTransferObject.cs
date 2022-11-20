@@ -2,7 +2,7 @@
 
 namespace AlicjowyBackendv3.Helpers
 {
-    public class RegisterDataTransferObject : UserModel
+    public class RegisterDataTransferObject : User
     {
         public string password { get; set; }
     }

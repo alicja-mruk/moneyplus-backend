@@ -36,7 +36,7 @@
         <tr>
             <td>/api/refresh</td>
             <td>POST</td>
-            <td>This endpoint allow to generate new access token and refresh token. In this case you have to send in header your refresh token in "refreshToken" field</td>
+            <td>This endpoint allow to generate new access token and refresh token. You have to send your actual refresh token in json format like below: <br/> {"refreshToken" : string}</td>
         </tr>
         <tr>
             <td>/api/categories/{id?}</td>
@@ -46,12 +46,12 @@
         <tr>
             <td>/api/expenses/{id?}</td>
             <td>GET</td>
-            <td>Method return informations about all expenses of selected user. If you add expense id you will get informations only about selected expense. Informations are send in json format like below:<br />{"category" : {"id" : string, "categoryName" : string, "iconName" : string, "color" : string, "typeOfCategory" : string}, "id" : string, "expenseName" : string, "expenseValue" : string, "creationDate" : DateTime}</td>
+            <td>Method return informations about all expenses of selected user. If you add expense id you will get informations only about selected expense. Informations are send in json format like below:<br />{"category" : {"id" : string, "categoryName" : string, "iconName" : string, "color" : string, "typeOfCategory" : string}, "id" : string, "name" : string, "value" : decimal, "creationDate" : DateTime}</td>
         </tr>
         <tr>
             <td>/api/expenses/edit</td>
             <td>POST/PUT/DELETE</td>
-            <td>Methods allow to add new expense, remove expense and edit existing expense. For every method you have to send data in json format like below:<br />For POST method: {"categoryId" : int, "expenseName" : string, "expenseValue" : string}<br />For PUT method: {"id" : string, "categoryId" : int, "expenseName" : string, "expenseValue" : string}<br />For DELETE method: {"id" : string}</td>
+            <td>Methods allow to add new expense, remove expense and edit existing expense. For every method you have to send data in json format like below:<br />For POST method: {"categoryId" : string, "name" : string, "value" : decimal}<br />For PUT method: {"id" : string, "categoryId" : int, "name" : string, "value" : decimal}<br />For DELETE method: {"id" : string}</td>
         </tr>
 @*        <tr>
             <td>/api/expenses/remove</td>
@@ -61,12 +61,12 @@
         <tr>
             <td>/api/receipts/{id?}</td>
             <td>GET</td>
-            <td>Method return informations about all receipts of selected user. If you add receipt id you will get informations only about selected receipt. Informations are send in json format like below:<br />{"category" : {"id" : string, "categoryName" : string, "iconName" : string, "color" : string, "typeOfCategory" : string}, "id" : string, "receiptsName" : string, "receiptsValue" : string, "creationDate" : DateTime}</td>
+            <td>Method return informations about all receipts of selected user. If you add receipt id you will get informations only about selected receipt. Informations are send in json format like below:<br />{"category" : {"id" : string, "categoryName" : string, "iconName" : string, "color" : string, "typeOfCategory" : string}, "id" : string, "name" : string, "value" : decimal, "creationDate" : DateTime}</td>
         </tr>
         <tr>
             <td>/api/receipts/edit</td>
             <td>POST/PUT/DELETE</td>
-            <td>Methods allow to add new receipt, remove receipt and edit existing receipt. For every method you have to send data in json format like below:<br />For POST method: {"categoryId" : int, "receiptsName" : string, "receiptsValue" : string}<br />For PUT method: {"id" : string, "categoryId" : int, "receiptsName" : string, "receiptsValue" : string}<br />For DELETE method: {"id" : string}</td>
+            <td>Methods allow to add new receipt, remove receipt and edit existing receipt. For every method you have to send data in json format like below:<br />For POST method: {"categoryId" : string, "name" : string, "value" : decimal}<br />For PUT method: {"id" : string, "categoryId" : string, "name" : string, "value" : decimal}<br />For DELETE method: {"id" : string}</td>
         </tr>
 @*        <tr>
             <td>/api/receipts/remove</td>
@@ -82,6 +82,11 @@
             <td>/api/categories/add</td>
             <td>POST</td>
             <td>This endpoint could allow to create a new category by user but unfortunately it doesn't work and if you want to know why, you have to go to this endpoint ( ͡° ͜ʖ ͡°)</td>
+        </tr>
+        <tr>
+            <td>/swagger/index.html</td>
+            <td>GET</td>
+            <td>Here you can find better documentation of the above endpoints</td>
         </tr>
     </table>
     <style>

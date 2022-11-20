@@ -2,6 +2,7 @@
 using AlicjowyBackendv3.Models;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using Npgsql;
 using System.Data;
 using System.Security.Claims;
@@ -11,130 +12,116 @@ namespace AlicjowyBackendv3.Controllers
 {
     public class ExpensesController : Controller
     {
+        private readonly moneyplus_dbContext _context;
+
+        public ExpensesController(moneyplus_dbContext context)
+        {
+            _context = context;
+        }
+
         [Route("/api/expenses/{id?}")]
         [HttpGet]
         [Authorize]
-        public List<ExpensesReadDataTransferObject> GET(string? id)
+        public async Task<ActionResult> GET(string? id)
         {
             var guid = User.FindFirstValue("user guid");
-            List<ExpensesReadDataTransferObject> get_expenses = new List<ExpensesReadDataTransferObject>();
-            //NpgsqlConnection conn = new NpgsqlConnection("User ID=postgres;Password=123;Host=localhost;Port=5432;Database=moneyplusAlpha;");
-            NpgsqlConnection conn = new NpgsqlConnection("User ID=krzysztof_golusinski@moneyplus-server;Password=Am22Kg23;Host=moneyplus-server.postgres.database.azure.com;Port=5432;Database=moneyplus_db;");
-            conn.Open();
-            NpgsqlCommand cmd = new NpgsqlCommand();
-            cmd.Connection = conn;
-            cmd.CommandType = CommandType.Text;
+            List<Expense> expenses = new List<Expense>();
             if (id == null)
-                cmd.CommandText = "SELECT * FROM expenses WHERE user_guid = '" + guid + "'";
-            //cmd.CommandText = "SELECT expenses.expense_guid, expenses.expense_name, categories.category_name, expenses.expense_value, expenses.creation_date FROM expenses INNER JOIN categories ON expenses.category_id=categories.category_id WHERE user_guid = '" + guid + "'";
+                expenses = await _context.Expenses.Where(c => c.userGuid == guid).ToListAsync();
             else
-                cmd.CommandText = "SELECT * FROM expenses WHERE user_guid = '" + guid + "' AND expense_guid = '" + id + "'";
-            //cmd.CommandText = "SELECT expenses.expense_guid, expenses.expense_name, categories.category_name, expenses.expense_value, expenses.creation_date FROM expenses INNER JOIN categories ON expenses.category_id=categories.category_id WHERE user_guid = '" + guid + "' AND expense_guid = '" + id + "'";
-            NpgsqlDataReader reader = cmd.ExecuteReader();
-
-            while (reader.Read())
+                expenses = await _context.Expenses.Where(c => c.id == id && c.userGuid == guid).ToListAsync();
+            for (int i = 0; i < expenses.Count(); i++)
             {
-                ExpensesReadDataTransferObject expenses = new ExpensesReadDataTransferObject();
-                expenses.id = reader["expense_guid"].ToString();
-                //expenses.categoryName = reader["category_name"].ToString();
-                expenses.expenseName = reader["expense_name"].ToString();
-                expenses.expenseValue = reader["expense_value"].ToString();
-                expenses.creationDate = Convert.ToDateTime(reader["creation_date"].ToString());
-
-                //NpgsqlConnection conn = new NpgsqlConnection("User ID=postgres;Password=123;Host=localhost;Port=5432;Database=moneyplusAlpha;");
-                NpgsqlConnection conn2 = new NpgsqlConnection("User ID=krzysztof_golusinski@moneyplus-server;Password=Am22Kg23;Host=moneyplus-server.postgres.database.azure.com;Port=5432;Database=moneyplus_db;");
-                conn2.Open();
-                NpgsqlCommand cmd2 = new NpgsqlCommand();
-                cmd2.Connection = conn2;
-                cmd2.CommandType = CommandType.Text;
-                cmd2.CommandText = "select * from categories where category_id = '" + reader["category_id"].ToString() + "'";
-                NpgsqlDataReader reader2 = cmd2.ExecuteReader();
-                CategoriesModel category = new CategoriesModel();
-                reader2.Read();
-
-                category.id = reader2["category_id"].ToString();
-                category.categoryName = reader2["category_name"].ToString();
-                category.iconName = reader2["icon_name"].ToString();
-                category.color = reader2["color"].ToString();
-                category.typeOfCategory = reader2["type_of_category"].ToString();
-
-                expenses.category = category;
-
-                get_expenses.Add(expenses);
+                expenses[i].Category = _context.Categories.Where(c => c.id == expenses[i].categoryId).Single();
             }
+            List<ExpensesReadDataTransferObject> expenses_list = new List<ExpensesReadDataTransferObject>();
+            for (int i = 0; i < expenses.Count(); i++)
+            {
+                ExpensesReadDataTransferObject expense = new ExpensesReadDataTransferObject();
+                CategoryExtension category = new CategoryExtension();
+                category.id = expenses[i].Category.id.ToString();
+                category.categoryName = expenses[i].Category.categoryName;
+                category.iconName = expenses[i].Category.iconName;
+                category.color = expenses[i].Category.color;
+                category.typeOfCategory = expenses[i].Category.typeOfCategory;
 
-            return get_expenses;
+                expense.Category = category;
+                expense.id = expenses[i].id;
+                expense.name = expenses[i].name;
+                expense.value = expenses[i].value;
+                expense.creationDate = expenses[i].creationDate;
+                expenses_list.Add(expense);
+            }
+            return Ok(expenses_list);
         }
 
         [Route("/api/expenses/edit")]
+        [HttpPost, HttpPut, HttpDelete]
         [Authorize]
-        public async Task<ActionResult<ExpensesWriteDataTransferObject>> ADD([FromBody] ExpensesWriteDataTransferObject request)
+        public async Task<ActionResult<Expense>> EDIT([FromBody] ExpensesWriteDataTransferObject request)
         {
-            //NpgsqlConnection conn = new NpgsqlConnection("User ID=postgres;Password=123;Host=localhost;Port=5432;Database=moneyplusAlpha;");
-            NpgsqlConnection conn = new NpgsqlConnection("User ID=krzysztof_golusinski@moneyplus-server;Password=Am22Kg23;Host=moneyplus-server.postgres.database.azure.com;Port=5432;Database=moneyplus_db;");
-            conn.Open();
-            NpgsqlCommand cmd = new NpgsqlCommand();
-            cmd.Connection = conn;
-            cmd.CommandType = CommandType.Text;
+            Expense expense = new Expense();
+
+            var guid = User.FindFirstValue("user guid");
+            try
+            {
+                expense.id = request.id;
+                expense.categoryId = request.categoryId;
+                expense.name = request.name;
+                expense.value = Convert.ToDecimal(request.value);
+                int contains_date = DateTime.Compare(request.creationDate, new DateTime(0001, 1, 1, 00, 0, 0));
+                if (contains_date == 0)
+                    expense.creationDate = DateTime.Parse(DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"));
+                else
+                    expense.creationDate = request.creationDate;
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new ResponseMessageStatus { StatusCode = "400", Message = "Invalid data type" });
+            }
 
             if (Request.Method == "POST")//add
             {
-                ExpensesWriteDataTransferObject expens = new ExpensesWriteDataTransferObject();
-
-                var guid = User.FindFirstValue("user guid");
+                Expense expense_add = new Expense { id = Guid.NewGuid().ToString(), userGuid = guid, categoryId = expense.categoryId, name = expense.name, value = expense.value, creationDate = expense.creationDate };
                 try
                 {
-                    expens.categoryId = request.categoryId;
-                    expens.expenseName = request.expenseName;
-                    expens.expenseValue = request.expenseValue;
-                    expens.creationDate = DateTime.Now;
+                    _context.Expenses.Add(expense_add);
+                    await _context.SaveChangesAsync();
                 }
-                catch (Exception ex)
+                catch(DbUpdateException ex)
                 {
-                    return BadRequest(new ResponseMessageStatus { StatusCode = "400", Message = "Invalid data type" });
+                    if (ex.InnerException is NpgsqlException sqlex)
+                        if (sqlex.SqlState.Equals("23503"))
+                            return NotFound(new ResponseMessageStatus { StatusCode = "404", Message = "Category with this id does not exist" });
                 }
-
-                cmd.CommandText = "INSERT INTO expenses(expense_guid, user_guid, category_id, expense_name, expense_value, creation_date) VALUES ('" + Guid.NewGuid().ToString() + "', '" + guid + "', " + expens.categoryId + ", '" + expens.expenseName + "', '" + expens.expenseValue + "', '" + expens.creationDate.ToString("yyyy.MM.dd HH:mm:ss") + "')";
-                NpgsqlDataReader reader = cmd.ExecuteReader();
                 return Created(string.Empty, new ResponseMessageStatus { StatusCode = "201", Message = "Expense created" });
             }
             else if (Request.Method == "DELETE")//remove
             {
-                ExpensesModel expens = new ExpensesModel();
-
-                try
-                {
-                    expens.id = request.id;
-                }
-                catch (Exception ex)
-                {
-                    return BadRequest(new ResponseMessageStatus { StatusCode = "400", Message = "Invalid data type" });
-                }
-
-                cmd.CommandText = "DELETE FROM expenses WHERE expense_guid = '" + expens.id + "'";
-                NpgsqlDataReader reader = cmd.ExecuteReader();
+                Expense expense_delete = await _context.Expenses.FindAsync(expense.id);
+                if (expense_delete == null)
+                    return NotFound(new ResponseMessageStatus { StatusCode = "404", Message = "Expense with this id does not exist" });
+                _context.Expenses.Remove(_context.Expenses.Find(expense.id));
+                _context.SaveChanges();
                 return Ok(new ResponseMessageStatus { StatusCode = "200", Message = "Expense deleted" });
             }
             else if (Request.Method == "PUT")//update
             {
-                ExpensesWriteDataTransferObject expens = new ExpensesWriteDataTransferObject();
-
-                var guid = User.FindFirstValue("user guid");
                 try
                 {
-                    expens.id = request.id;
-                    expens.categoryId = request.categoryId;
-                    expens.expenseName = request.expenseName;
-                    expens.expenseValue = request.expenseValue;
-                    expens.creationDate = DateTime.Now;
+                    Expense expense_update = await _context.Expenses.FindAsync(expense.id);
+                    if(expense.categoryId != null)
+                        expense_update.categoryId = expense.categoryId;
+                    if (expense.name != null)
+                        expense_update.name = expense.name;
+                    if (expense.value != 0)
+                        expense_update.value = Convert.ToDecimal(expense.value);
+                    await _context.SaveChangesAsync();
                 }
-                catch (Exception ex)
+                catch(Exception ex)
                 {
-                    return BadRequest(new ResponseMessageStatus { StatusCode = "400", Message = "Invalid data type" });
+                    return NotFound(new ResponseMessageStatus { StatusCode = "404", Message = "Expense with this id does not exist" });
                 }
-
-                cmd.CommandText = "UPDATE expenses SET category_id = " + expens.categoryId + ", expense_name = '" + expens.expenseName + "', expense_value = '" + expens.expenseValue + "' WHERE expense_guid = '" + expens.id + "'";
-                NpgsqlDataReader reader = cmd.ExecuteReader();
                 return Ok(new ResponseMessageStatus { StatusCode = "200", Message = "Expense updated" });
             }
             return StatusCode(405, new ResponseMessageStatus { StatusCode = "405", Message = "Method not allowed" });

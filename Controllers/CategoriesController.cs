@@ -1,6 +1,8 @@
-﻿using AlicjowyBackendv3.Models;
+﻿using AlicjowyBackendv3.Helpers;
+using AlicjowyBackendv3.Models;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using Npgsql;
 using System.Data;
 using System.Security.Claims;
@@ -9,38 +11,35 @@ namespace AlicjowyBackendv3.Controllers
 {
     public class CategoriesController : Controller
     {
-        [Route("/api/categories/{id?}")]
+        private readonly moneyplus_dbContext _context;
+
+        public CategoriesController(moneyplus_dbContext context)
+        {
+            _context = context;
+        }
+
+        [Route("api/categories/{id?}")]
         [HttpGet]
         [Authorize]
-        public List<CategoriesModel> GET(int? id)
+        public async Task<ActionResult> GET(int? id)
         {
-            //var id = User.FindFirstValue("user id");
-            List<CategoriesModel> get_categories = new List<CategoriesModel>();
-            //NpgsqlConnection conn = new NpgsqlConnection("User ID=postgres;Password=123;Host=localhost;Port=5432;Database=moneyplusAlpha;");
-            NpgsqlConnection conn = new NpgsqlConnection("User ID=krzysztof_golusinski@moneyplus-server;Password=Am22Kg23;Host=moneyplus-server.postgres.database.azure.com;Port=5432;Database=moneyplus_db;");
-            conn.Open();
-            NpgsqlCommand cmd = new NpgsqlCommand();
-            cmd.Connection = conn;
-            cmd.CommandType = CommandType.Text;
+            List<Category> categories = new List<Category>();
             if (id == null)
-                cmd.CommandText = "select * from categories";
+                categories = await _context.Categories.ToListAsync();
             else
-                cmd.CommandText = "select * from categories where category_id = " + id;
-            NpgsqlDataReader reader = cmd.ExecuteReader();
-
-            while(reader.Read())
+                categories = await _context.Categories.Where(c => c.id == id).ToListAsync();
+            List<CategoryExtension> categories_list = new List<CategoryExtension>();
+            for (int i = 0; i < categories.Count(); i++)
             {
-                CategoriesModel category = new CategoriesModel();
-                category.id = reader["category_id"].ToString();
-                category.categoryName = reader["category_name"].ToString();
-                category.iconName = reader["icon_name"].ToString();
-                category.color = reader["color"].ToString();
-                category.typeOfCategory = reader["type_of_category"].ToString();
-                get_categories.Add(category);
+                CategoryExtension category = new CategoryExtension();
+                category.id = categories[i].id.ToString();
+                category.categoryName = categories[i].categoryName;
+                category.iconName = categories[i].iconName;
+                category.color = categories[i].color;
+                category.typeOfCategory = categories[i].typeOfCategory;
+                categories_list.Add(category);
             }
-
-            return get_categories;
-            //return StatusCode(501, new ResponseMessageStatus { StatusCode = "501", Message = "Jeszcze ni mo, jak bedzie to bedzie. Bądź cierpliwa" });
+            return Ok(categories_list);
         }
 
         [Route("/api/categories/add")]

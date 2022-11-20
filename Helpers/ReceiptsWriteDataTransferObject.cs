@@ -2,7 +2,7 @@
 
 namespace AlicjowyBackendv3.Helpers
 {
-    public class ReceiptsWriteDataTransferObject : ReceiptsModel
+    public class ReceiptsWriteDataTransferObject : Receipt
     {
         public int categoryId { get; set; }
     }

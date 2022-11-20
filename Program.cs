@@ -1,6 +1,8 @@
 using AlicjowyBackendv3;
 using AlicjowyBackendv3.Helpers;
+using AlicjowyBackendv3.Models;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Newtonsoft.Json;
 using System.Net;
@@ -25,7 +27,12 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme).AddJw
     };
 });
 
+builder.Services.AddDbContext<moneyplus_dbContext>(options => options.UseNpgsql(builder.Configuration.GetConnectionString("MoneyPlusContext")));
+builder.Services.AddEndpointsApiExplorer();
+builder.Services.AddSwaggerGen();
+
 var app = builder.Build();
+app.UseSwaggerUI();
 
 // Configure the HTTP request pipeline.
 if (!app.Environment.IsDevelopment())
@@ -34,6 +41,8 @@ if (!app.Environment.IsDevelopment())
     // The default HSTS value is 30 days. You may want to change this for production scenarios, see https://aka.ms/aspnetcore-hsts.
     app.UseHsts();
 }
+
+app.UseSwagger(x => x.SerializeAsV2 = true);
 
 app.Use(async (context, next) =>
 {

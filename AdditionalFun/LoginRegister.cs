@@ -1,8 +1,8 @@
 ﻿using AlicjowyBackendv3.Helpers;
 using AlicjowyBackendv3.Models;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
-using Newtonsoft.Json.Linq;
 using Npgsql;
 using System.Collections;
 using System.Data;
@@ -17,51 +17,37 @@ namespace AlicjowyBackendv3.AdditionalFun
     public class LoginRegister : Controller
     {
         private readonly IConfiguration _configuration;
+        private readonly moneyplus_dbContext _context;
 
-        public LoginRegister(IConfiguration config)
+        public LoginRegister(IConfiguration config, moneyplus_dbContext context)
         {
             _configuration = config;
+            _context = context;
         }
 
         #region LoginRegister
         [Route("/api/login")]
         [HttpPost]
-        public async Task<ActionResult<UserModel>> Login([FromBody] UserDataTransferObject request)
+        public async Task<ActionResult<User>> Login([FromBody] UserDataTransferObject request)
         {
-            UserModel user = new UserModel();
+            User user = _context.Users.Where(c => c.email == request.Email).SingleOrDefault();
 
-            //NpgsqlConnection conn = new NpgsqlConnection("User ID=postgres;Password=123;Host=localhost;Port=5432;Database=moneyplusAlpha;");
-            NpgsqlConnection conn = new NpgsqlConnection("User ID=krzysztof_golusinski@moneyplus-server;Password=Am22Kg23;Host=moneyplus-server.postgres.database.azure.com;Port=5432;Database=moneyplus_db;");
-            conn.Open();
-            NpgsqlCommand cmd = new NpgsqlCommand();
-            cmd.Connection = conn;
-            cmd.CommandType = CommandType.Text;
-            cmd.CommandText = "SELECT * FROM users WHERE email='" + request.Email + "'";
-            NpgsqlDataReader reader = cmd.ExecuteReader();
-            reader.Read();
-            if (reader.HasRows)
+            if (user == null)
             {
-                user.id = reader["user_guid"].ToString();
-                user.firstName = reader["first_name"].ToString();
-                user.lastName = reader["last_name"].ToString();
-                user.passwordHash = Convert.FromBase64String(reader["password_hash"].ToString());
-                user.passwordSalt = Convert.FromBase64String(reader["password_salt"].ToString());
-                user.age = Convert.ToInt32(reader["age"]);
-                user.email = reader["email"].ToString();
-                reader.Close();
-            }
-            else
                 return BadRequest(new ResponseMessageStatus { StatusCode = "400", Message = "Username or password is incorrect" });
+            }
 
-            bool passwordCorrect = VerifyPasswordHash(request.Password, user.passwordHash, user.passwordSalt);
+            bool passwordCorrect = VerifyPasswordHash(request.Password, Convert.FromBase64String(user.passwordHash), Convert.FromBase64String(user.passwordSalt));
+
             if (user.email == request.Email && passwordCorrect)
             {
                 Tokens token = new Tokens();
                 token.accessToken = CreateToken(user);
                 RefreshToken fulltoken = GenerateRefreshToken(user);
                 token.refreshToken = fulltoken.Token;
-                cmd.CommandText = "UPDATE users SET refresh_token = '" + fulltoken.Token + "', token_expires = '" + fulltoken.Expires.ToString("yyyy.MM.dd HH:mm:ss") + "' WHERE user_guid = '" + user.id + "'"; //kurwa kto to projektował, żeby w dedykowanym środowisku silnik bazodanowy sobie sam parsował fulltoken.Expires, a tutaj trzeba to ręcznie robić ... postgres 11 < postgres 12
-                cmd.ExecuteReader();
+                user.refreshToken = fulltoken.Token;
+                user.tokenExpires = fulltoken.Expires;
+                await _context.SaveChangesAsync();
                 return Ok(token);
             }
             else
@@ -70,45 +56,30 @@ namespace AlicjowyBackendv3.AdditionalFun
 
         [Route("/api/register")]
         [HttpPost]
-        public async Task<ActionResult<UserModel>> Register([FromBody] RegisterDataTransferObject request)
+        public async Task<ActionResult<User>> Register([FromBody] RegisterDataTransferObject request)
         {
-            UserModel user = new UserModel();
+            User user = new User();
             CreatePasswordHash(request.password, out byte[] passwordHash, out byte[] passwordSalt);
 
+            user.id = Guid.NewGuid().ToString();
             user.firstName = request.firstName;
             user.lastName = request.lastName;
-            user.passwordHash = passwordHash;
-            user.passwordSalt = passwordSalt;
-            user.age = request.age;
+            user.passwordHash = Convert.ToBase64String(passwordHash);
+            user.passwordSalt = Convert.ToBase64String(passwordSalt);
+            user.age = Convert.ToInt16(request.age);
             user.email = request.email;
 
-            //NpgsqlConnection conn = new NpgsqlConnection("User ID=postgres;Password=123;Host=localhost;Port=5432;Database=moneyplusAlpha;");
-            NpgsqlConnection conn = new NpgsqlConnection("User ID=krzysztof_golusinski@moneyplus-server;Password=Am22Kg23;Host=moneyplus-server.postgres.database.azure.com;Port=5432;Database=moneyplus_db;");
-            conn.Open();
-            NpgsqlCommand cmd = new NpgsqlCommand();
-            cmd.Connection = conn;
-            cmd.CommandType = CommandType.Text;
-            //cmd.CommandText = "SELECT MAX(user_id) FROM users";
-            //NpgsqlDataReader check = cmd.ExecuteReader();
-            //check.Read();
-            //if (check["max"] != DBNull.Value)
-            //{
-                //check.Close();
-                //cmd.CommandText = "INSERT INTO users(user_id, first_name, last_name, password_hash, password_salt, age, email) VALUES ((SELECT MAX(user_id)+1 FROM users), '" + user.firstName + "', '" + user.lastName + "', '" + Convert.ToBase64String(user.passwordHash) + "', '" + Convert.ToBase64String(user.passwordSalt) + "', " + user.age + ", '" + user.email + "')";
-            //}
-            //else
-            //{
-                //check.Close();
-                cmd.CommandText = "INSERT INTO users(user_guid, first_name, last_name, password_hash, password_salt, age, email) VALUES ('"+ Guid.NewGuid().ToString() + "', '" + user.firstName + "', '" + user.lastName + "', '" + Convert.ToBase64String(user.passwordHash) + "', '" + Convert.ToBase64String(user.passwordSalt) + "', " + user.age + ", '" + user.email + "')";
-            //}
+            _context.Users.Add(user);
+
             try
             {
-                NpgsqlDataReader reader = cmd.ExecuteReader();
+                await _context.SaveChangesAsync();
             }
-            catch (NpgsqlException ex)
+            catch (/*NpgsqlException*/DbUpdateException ex)
             {
-                if (ex.SqlState.Equals("23505"))
-                    return Conflict(new ResponseMessageStatus { StatusCode = "409", Message = "User with this email address already exists" });
+                if (ex.InnerException is NpgsqlException sqlex)
+                    if (sqlex.SqlState.Equals("23505"))
+                        return Conflict(new ResponseMessageStatus { StatusCode = "409", Message = "User with this email address already exists" });
             }
             return Created(string.Empty, new ResponseMessageStatus { StatusCode = "201", Message = "User created" });
         }
@@ -139,27 +110,12 @@ namespace AlicjowyBackendv3.AdditionalFun
         [HttpPost]
         public async Task<ActionResult<string>> RefreshToken([FromBody] Tokens refreshToken)
         {
-            UserModel user = new UserModel();
+            User user = _context.Users.Where(c => c.refreshToken == refreshToken.refreshToken).SingleOrDefault();
 
-            //NpgsqlConnection conn = new NpgsqlConnection("User ID=postgres;Password=123;Host=localhost;Port=5432;Database=moneyplusAlpha;");
-            NpgsqlConnection conn = new NpgsqlConnection("User ID=krzysztof_golusinski@moneyplus-server;Password=Am22Kg23;Host=moneyplus-server.postgres.database.azure.com;Port=5432;Database=moneyplus_db;");
-            conn.Open();
-            NpgsqlCommand cmd = new NpgsqlCommand();
-            cmd.Connection = conn;
-            cmd.CommandType = CommandType.Text;
-            cmd.CommandText = "select * from Users where refresh_token = '" + refreshToken.refreshToken + "'";
-            NpgsqlDataReader reader = cmd.ExecuteReader();
-            reader.Read();
-
-            if (reader.HasRows)
+            if (user == null)
             {
-                user.id = reader["user_guid"].ToString();
-                user.refreshToken = reader["refresh_token"].ToString();
-                user.tokenExpires = Convert.ToDateTime(reader["token_expires"].ToString());
-                reader.Close();
-            }
-            else
                 return BadRequest(new ResponseMessageStatus { StatusCode = "400", Message = "Invalid refresh token or token expired" });
+            }
 
             Tokens tokens = new Tokens();
             if (!user.refreshToken.Equals(refreshToken.refreshToken) || user.tokenExpires < DateTime.Now)
@@ -170,19 +126,19 @@ namespace AlicjowyBackendv3.AdditionalFun
             tokens.accessToken = CreateToken(user);
             RefreshToken fulltoken = GenerateRefreshToken(user);
             tokens.refreshToken = fulltoken.Token;
-            cmd.CommandText = "UPDATE users SET refresh_token = '" + fulltoken.Token + "', token_expires = '" + fulltoken.Expires.ToString("yyyy.MM.dd HH:mm:ss") + "' WHERE user_guid = '" + user.id + "'";
-            cmd.ExecuteReader();
-
+            user.refreshToken = fulltoken.Token;
+            user.tokenExpires = fulltoken.Expires;
+            await _context.SaveChangesAsync();
             return Ok(tokens);
         }
 
-        private RefreshToken GenerateRefreshToken(UserModel user)
+        private RefreshToken GenerateRefreshToken(User user)
         {
             var refreshToken = new RefreshToken
             {
                 Token = Convert.ToBase64String(RandomNumberGenerator.GetBytes(64)),
-                Expires = DateTime.Now.AddDays(14),
-                Created = DateTime.Now
+                Expires = DateTime.Parse(DateTime.Now.AddDays(14).ToString("yyyy-MM-dd HH:mm:ss")),
+                Created = DateTime.Parse(DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"))
             };
 
             user.refreshToken = refreshToken.Token;
@@ -191,7 +147,7 @@ namespace AlicjowyBackendv3.AdditionalFun
             return refreshToken;
         }
 
-        private string CreateToken(UserModel user)
+        private string CreateToken(User user)
         {
             List<Claim> claims = new List<Claim>
             {

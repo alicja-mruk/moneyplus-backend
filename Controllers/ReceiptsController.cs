@@ -2,6 +2,7 @@
 using AlicjowyBackendv3.Models;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using Npgsql;
 using System.Data;
 using System.Security.Claims;
@@ -11,131 +12,116 @@ namespace AlicjowyBackendv3.Controllers
 {
     public class ReceiptsController : Controller
     {
+        private readonly moneyplus_dbContext _context;
+
+        public ReceiptsController(moneyplus_dbContext context)
+        {
+            _context = context;
+        }
+
         [Route("/api/receipts/{id?}")]
         [HttpGet]
         [Authorize]
-        public List<ReceiptsReadDataTransferObject> GET(string? id)
+        public async Task<ActionResult> GET(string? id)
         {
             var guid = User.FindFirstValue("user guid");
-            List<ReceiptsReadDataTransferObject> get_receipts = new List<ReceiptsReadDataTransferObject>();
-            //NpgsqlConnection conn = new NpgsqlConnection("User ID=postgres;Password=123;Host=localhost;Port=5432;Database=moneyplusAlpha;");
-            NpgsqlConnection conn = new NpgsqlConnection("User ID=krzysztof_golusinski@moneyplus-server;Password=Am22Kg23;Host=moneyplus-server.postgres.database.azure.com;Port=5432;Database=moneyplus_db;");
-            conn.Open();
-            NpgsqlCommand cmd = new NpgsqlCommand();
-            cmd.Connection = conn;
-            cmd.CommandType = CommandType.Text;
+            List<Receipt> receipts = new List<Receipt>();
             if (id == null)
-                cmd.CommandText = "SELECT * FROM receipts WHERE user_guid = '" + guid + "'";
-            //cmd.CommandText = "SELECT receipts.receipts_guid, receipts.receipts_name, categories.category_name, receipts.receipts_value, receipts.creation_date FROM receipts INNER JOIN categories ON receipts.category_id=categories.category_id WHERE user_guid = '" + guid + "'";
+                receipts = await _context.Receipts.Where(c => c.userGuid == guid).ToListAsync();
             else
-                cmd.CommandText = "SELECT * FROM receipts WHERE user_guid = '" + guid + "' AND receipts_guid = '" + id + "'";
-            //cmd.CommandText = "SELECT receipts.receipts_guid, receipts.receipts_name, categories.category_name, receipts.receipts_value, receipts.creation_date FROM receipts INNER JOIN categories ON receipts.category_id=categories.category_id WHERE user_guid = '" + guid + "' AND receipts_guid = '" + id + "'";
-            NpgsqlDataReader reader = cmd.ExecuteReader();
-
-            while (reader.Read())
+                receipts = await _context.Receipts.Where(c => c.id == id && c.userGuid == guid).ToListAsync();
+            for (int i = 0; i < receipts.Count(); i++)
+            {
+                receipts[i].Category = _context.Categories.Where(c => c.id == receipts[i].categoryId).Single();
+            }
+            List<ReceiptsReadDataTransferObject> receipts_list = new List<ReceiptsReadDataTransferObject>();
+            for (int i = 0; i < receipts.Count(); i++)
             {
                 ReceiptsReadDataTransferObject receipt = new ReceiptsReadDataTransferObject();
-                receipt.id = reader["receipts_guid"].ToString();
-                //receipt.categoryName = reader["category_name"].ToString();
-                receipt.receiptsName = reader["receipts_name"].ToString();
-                receipt.receiptsValue = reader["receipts_value"].ToString();
-                receipt.creationDate = Convert.ToDateTime(reader["creation_date"].ToString());
+                CategoryExtension category = new CategoryExtension();
+                category.id = receipts[i].Category.id.ToString();
+                category.categoryName = receipts[i].Category.categoryName;
+                category.iconName = receipts[i].Category.iconName;
+                category.color = receipts[i].Category.color;
+                category.typeOfCategory = receipts[i].Category.typeOfCategory;
 
-
-                //NpgsqlConnection conn = new NpgsqlConnection("User ID=postgres;Password=123;Host=localhost;Port=5432;Database=moneyplusAlpha;");
-                NpgsqlConnection conn2 = new NpgsqlConnection("User ID=krzysztof_golusinski@moneyplus-server;Password=Am22Kg23;Host=moneyplus-server.postgres.database.azure.com;Port=5432;Database=moneyplus_db;");
-                conn2.Open();
-                NpgsqlCommand cmd2 = new NpgsqlCommand();
-                cmd2.Connection = conn2;
-                cmd2.CommandType = CommandType.Text;
-                cmd2.CommandText = "select * from categories where category_id = '" + reader["category_id"].ToString() + "'";
-                NpgsqlDataReader reader2 = cmd2.ExecuteReader();
-                CategoriesModel category = new CategoriesModel();
-                reader2.Read();
-                
-                category.id = reader2["category_id"].ToString();
-                category.categoryName = reader2["category_name"].ToString();
-                category.iconName = reader2["icon_name"].ToString();
-                category.color = reader2["color"].ToString();
-                category.typeOfCategory = reader2["type_of_category"].ToString();
-
-                receipt.category = category;
-
-                get_receipts.Add(receipt);
+                receipt.Category = category;
+                receipt.id = receipts[i].id;
+                receipt.name = receipts[i].name;
+                receipt.value = receipts[i].value;
+                receipt.creationDate = receipts[i].creationDate;
+                receipts_list.Add(receipt);
             }
-
-            return get_receipts;
+            return Ok(receipts_list);
         }
 
         [Route("/api/receipts/edit")]
+        [HttpPost, HttpPut, HttpDelete]
         [Authorize]
-        public async Task<ActionResult<ReceiptsWriteDataTransferObject>> ADD([FromBody] ReceiptsWriteDataTransferObject request)
+        public async Task<ActionResult<Receipt>> EDIT([FromBody] ReceiptsWriteDataTransferObject request)
         {
-            //NpgsqlConnection conn = new NpgsqlConnection("User ID=postgres;Password=123;Host=localhost;Port=5432;Database=moneyplusAlpha;");
-            NpgsqlConnection conn = new NpgsqlConnection("User ID=krzysztof_golusinski@moneyplus-server;Password=Am22Kg23;Host=moneyplus-server.postgres.database.azure.com;Port=5432;Database=moneyplus_db;");
-            conn.Open();
-            NpgsqlCommand cmd = new NpgsqlCommand();
-            cmd.Connection = conn;
-            cmd.CommandType = CommandType.Text;
+            Receipt receipt = new Receipt();
+
+            var guid = User.FindFirstValue("user guid");
+            try
+            {
+                receipt.id = request.id;
+                receipt.categoryId = request.categoryId;
+                receipt.name = request.name;
+                receipt.value = Convert.ToDecimal(request.value);
+                int contains_date = DateTime.Compare(request.creationDate, new DateTime(0001, 1, 1, 00, 0, 0));
+                if (contains_date == 0)
+                    receipt.creationDate = DateTime.Parse(DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"));
+                else
+                    receipt.creationDate = request.creationDate;
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new ResponseMessageStatus { StatusCode = "400", Message = "Invalid data type" });
+            }
 
             if (Request.Method == "POST")//add
             {
-                ReceiptsWriteDataTransferObject receipt = new ReceiptsWriteDataTransferObject();
-
-                var guid = User.FindFirstValue("user guid");
+                Receipt receipt_add = new Receipt { id = Guid.NewGuid().ToString(), userGuid = guid, categoryId = receipt.categoryId, name = receipt.name, value = receipt.value, creationDate = receipt.creationDate };
                 try
                 {
-                    receipt.categoryId = request.categoryId;
-                    receipt.receiptsName = request.receiptsName;
-                    receipt.receiptsValue = request.receiptsValue;
-                    receipt.creationDate = DateTime.Now;
+                    _context.Receipts.Add(receipt_add);
+                    await _context.SaveChangesAsync();
                 }
-                catch (Exception ex)
+                catch(DbUpdateException ex)
                 {
-                    return BadRequest(new ResponseMessageStatus { StatusCode = "400", Message = "Invalid data type" });
+                    if (ex.InnerException is NpgsqlException sqlex)
+                        if (sqlex.SqlState.Equals("23503"))
+                            return NotFound(new ResponseMessageStatus { StatusCode = "404", Message = "Category with this id does not exist" });
                 }
-
-                cmd.CommandText = "INSERT INTO receipts(receipts_guid, user_guid, category_id, receipts_name, receipts_value, creation_date) VALUES ('" + Guid.NewGuid().ToString() + "', '" + guid + "', '" + receipt.categoryId + "', '" + receipt.receiptsName + "', '" + receipt.receiptsValue + "', '" + receipt.creationDate.ToString("yyyy.MM.dd HH:mm:ss") + "')";
-                NpgsqlDataReader reader = cmd.ExecuteReader();
                 return Created(string.Empty, new ResponseMessageStatus { StatusCode = "201", Message = "Receipt created" });
             }
             else if (Request.Method == "DELETE")//remove
             {
-                ReceiptsModel receipt = new ReceiptsModel();
-
-                try
-                {
-                    receipt.id = request.id;
-                }
-                catch (Exception ex)
-                {
-                    return BadRequest(new ResponseMessageStatus { StatusCode = "400", Message = "Invalid data type" });
-                }
-
-                cmd.CommandText = "DELETE FROM receipts WHERE receipts_guid = '" + receipt.id + "'";
-                NpgsqlDataReader reader = cmd.ExecuteReader();
+                Receipt receipt_delete = await _context.Receipts.FindAsync(receipt.id);
+                if (receipt_delete == null)
+                    return NotFound(new ResponseMessageStatus { StatusCode = "404", Message = "Receipt with this id does not exist" });
+                _context.Receipts.Remove(_context.Receipts.Find(receipt.id));
+                _context.SaveChanges();
                 return Ok(new ResponseMessageStatus { StatusCode = "200", Message = "Receipt deleted" });
             }
             else if (Request.Method == "PUT")//update
             {
-                ReceiptsWriteDataTransferObject receipt = new ReceiptsWriteDataTransferObject();
-
-                var guid = User.FindFirstValue("user guid");
                 try
                 {
-                    receipt.id = request.id;
-                    receipt.categoryId = request.categoryId;
-                    receipt.receiptsName = request.receiptsName;
-                    receipt.receiptsValue = request.receiptsValue;
-                    receipt.creationDate = DateTime.Now;
+                    Receipt receipt_update = await _context.Receipts.FindAsync(receipt.id);
+                    if (receipt.categoryId != null)
+                        receipt_update.categoryId = receipt.categoryId;
+                    if (receipt.name != null)
+                        receipt_update.name = receipt.name;
+                    if (receipt.value != 0)
+                        receipt_update.value = Convert.ToDecimal(receipt.value);
+                    await _context.SaveChangesAsync();
                 }
-                catch (Exception ex)
+                catch(Exception ex)
                 {
-                    return BadRequest(new ResponseMessageStatus { StatusCode = "400", Message = "Invalid data type" });
+                    return NotFound(new ResponseMessageStatus { StatusCode = "404", Message = "Receipt with this id does not exist" });
                 }
-
-                cmd.CommandText = "UPDATE receipts SET category_id = " + receipt.categoryId + ", receipts_name = '" + receipt.receiptsName + "', receipts_value ='" + receipt.receiptsValue + "' WHERE receipts_guid = '" + receipt.id + "'";
-                NpgsqlDataReader reader = cmd.ExecuteReader();
                 return Ok(new ResponseMessageStatus { StatusCode = "200", Message = "Receipt updated" });
             }
             return StatusCode(405, new ResponseMessageStatus { StatusCode = "405", Message = "Method not allowed" });

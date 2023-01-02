@@ -26,11 +26,15 @@ namespace AlicjowyBackendv3.AdditionalFun
         }
 
         #region LoginRegister
+        /// <response code="200">User has been succesfully logged in and in response he get a pair of tokens</response>
+        /// <response code="400">Access denied. Username or password was incorrect</response>
         [Route("/api/login")]
         [HttpPost]
+        [ProducesResponseType(typeof(Tokens), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ResponseMessageStatus), StatusCodes.Status400BadRequest)]
         public async Task<ActionResult<User>> Login([FromBody] UserDataTransferObject request)
         {
-            User user = _context.Users.Where(c => c.email == request.Email).SingleOrDefault();
+            User user = _context.Users.Where(c => c.email == request.Email.ToLower()).SingleOrDefault();
 
             if (user == null)
             {
@@ -39,7 +43,7 @@ namespace AlicjowyBackendv3.AdditionalFun
 
             bool passwordCorrect = VerifyPasswordHash(request.Password, Convert.FromBase64String(user.passwordHash), Convert.FromBase64String(user.passwordSalt));
 
-            if (user.email == request.Email && passwordCorrect)
+            if (user.email == request.Email.ToLower() && passwordCorrect)
             {
                 Tokens token = new Tokens();
                 token.accessToken = CreateToken(user);
@@ -54,8 +58,12 @@ namespace AlicjowyBackendv3.AdditionalFun
                 return BadRequest(new ResponseMessageStatus { StatusCode = "400", Message = "Username or password is incorrect" });
         }
 
+        /// <response code="201">Returns a message that the user was created successfuly</response>
+        /// <response code="409">Conflict has been detected beacause the user with the same email address already exists</response>
         [Route("/api/register")]
         [HttpPost]
+        [ProducesResponseType(typeof(ResponseMessageStatus), StatusCodes.Status201Created)]
+        [ProducesResponseType(typeof(ResponseMessageStatus), StatusCodes.Status409Conflict)]
         public async Task<ActionResult<User>> Register([FromBody] RegisterDataTransferObject request)
         {
             User user = new User();
@@ -67,7 +75,7 @@ namespace AlicjowyBackendv3.AdditionalFun
             user.passwordHash = Convert.ToBase64String(passwordHash);
             user.passwordSalt = Convert.ToBase64String(passwordSalt);
             user.age = Convert.ToInt16(request.age);
-            user.email = request.email;
+            user.email = request.email.ToLower();
 
             _context.Users.Add(user);
 
@@ -106,8 +114,12 @@ namespace AlicjowyBackendv3.AdditionalFun
         #endregion
 
         #region TokenOperations
+        /// <response code="200">Returns a new pair of tokens</response>
+        /// <response code="400">This error means the refresh token was invalid or refresh token expired</response>
         [Route("/api/refresh")]
         [HttpPost]
+        [ProducesResponseType(typeof(Tokens), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ResponseMessageStatus), StatusCodes.Status400BadRequest)]
         public async Task<ActionResult<string>> RefreshToken([FromBody] Tokens refreshToken)
         {
             User user = _context.Users.Where(c => c.refreshToken == refreshToken.refreshToken).SingleOrDefault();
@@ -137,7 +149,7 @@ namespace AlicjowyBackendv3.AdditionalFun
             var refreshToken = new RefreshToken
             {
                 Token = Convert.ToBase64String(RandomNumberGenerator.GetBytes(64)),
-                Expires = DateTime.Parse(DateTime.Now.AddDays(14).ToString("yyyy-MM-dd HH:mm:ss")),
+                Expires = DateTime.Parse(DateTime.Now.AddMinutes(2).ToString("yyyy-MM-dd HH:mm:ss")),
                 Created = DateTime.Parse(DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"))
             };
 
@@ -158,7 +170,7 @@ namespace AlicjowyBackendv3.AdditionalFun
             var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha512Signature);
             var token = new JwtSecurityToken(
                 claims: claims,
-                expires: DateTime.Now.AddDays(7),
+                expires: DateTime.Now.AddMinutes(1),
                 signingCredentials: creds
                 );
             var jwt = new JwtSecurityTokenHandler().WriteToken(token);

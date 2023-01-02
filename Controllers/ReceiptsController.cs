@@ -22,14 +22,40 @@ namespace AlicjowyBackendv3.Controllers
         [Route("/api/receipts/{id?}")]
         [HttpGet]
         [Authorize]
-        public async Task<ActionResult> GET(string? id)
+        public async Task<ActionResult> GET(string? id, string? year, string? month, string? day)
         {
             var guid = User.FindFirstValue("user guid");
             List<Receipt> receipts = new List<Receipt>();
-            if (id == null)
-                receipts = await _context.Receipts.Where(c => c.userGuid == guid).ToListAsync();
+
+            if (year == null && month == null && day == null)
+            {
+                if (id == null)
+                    receipts = await _context.Receipts.Where(c => c.userGuid == guid).ToListAsync();
+                else
+                    receipts = await _context.Receipts.Where(c => c.id == id && c.userGuid == guid).ToListAsync();
+            }
             else
-                receipts = await _context.Receipts.Where(c => c.id == id && c.userGuid == guid).ToListAsync();
+            {
+                if (day != null)
+                {
+                    if (month == null)
+                        month = DateTime.Now.Month.ToString();
+                    if (year == null)
+                        year = DateTime.Now.Year.ToString();
+                    receipts = await _context.Receipts.Where(c => c.userGuid == guid && c.creationDate.Year.ToString() == year && c.creationDate.Month.ToString() == month && c.creationDate.Day == Convert.ToInt32(day)).ToListAsync();
+                }
+                else if (month != null)
+                {
+                    if (year == null)
+                        year = DateTime.Now.Year.ToString();
+                    receipts = await _context.Receipts.Where(c => c.userGuid == guid && c.creationDate.Year.ToString() == year && c.creationDate.Month == Convert.ToInt32(month)).ToListAsync();
+                }
+                else
+                {
+                    receipts = await _context.Receipts.FromSqlRaw("SELECT e.receipts_guid, e.category_id, e.creation_date, e.receipts_name, e.user_guid, e.receipts_value FROM receipts AS e WHERE (e.user_guid = '" + guid + "') AND (date_part('year', e.creation_date) = " + year + ")").ToListAsync();
+                }
+            }
+
             for (int i = 0; i < receipts.Count(); i++)
             {
                 receipts[i].Category = _context.Categories.Where(c => c.id == receipts[i].categoryId).Single();

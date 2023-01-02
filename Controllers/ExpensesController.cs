@@ -1,8 +1,10 @@
 ﻿using AlicjowyBackendv3.Helpers;
 using AlicjowyBackendv3.Models;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Http.Extensions;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Query.SqlExpressions;
 using Npgsql;
 using System.Data;
 using System.Security.Claims;
@@ -22,14 +24,41 @@ namespace AlicjowyBackendv3.Controllers
         [Route("/api/expenses/{id?}")]
         [HttpGet]
         [Authorize]
-        public async Task<ActionResult> GET(string? id)
+        public async Task<ActionResult> GET(string? id, string? year, string? month, string? day)
         {
             var guid = User.FindFirstValue("user guid");
             List<Expense> expenses = new List<Expense>();
-            if (id == null)
-                expenses = await _context.Expenses.Where(c => c.userGuid == guid).ToListAsync();
+
+            if (year == null && month == null && day == null)
+            {
+                if (id == null)
+                    expenses = await _context.Expenses.Where(c => c.userGuid == guid).ToListAsync();
+                else
+                    expenses = await _context.Expenses.Where(c => c.id == id && c.userGuid == guid).ToListAsync();
+            }
             else
-                expenses = await _context.Expenses.Where(c => c.id == id && c.userGuid == guid).ToListAsync();
+            {
+                if (day != null)
+                {
+                    if (month == null)
+                        month = DateTime.Now.Month.ToString();
+                    if (year == null)
+                        year = DateTime.Now.Year.ToString();
+                    expenses = await _context.Expenses.Where(c => c.userGuid == guid && c.creationDate.Year.ToString() == year && c.creationDate.Month.ToString() == month && c.creationDate.Day == Convert.ToInt32(day)).ToListAsync();
+                }
+                else if (month != null)
+                {
+                    if (year == null)
+                        year = DateTime.Now.Year.ToString();
+                    expenses = await _context.Expenses.Where(c => c.userGuid == guid && c.creationDate.Year.ToString() == year && c.creationDate.Month == Convert.ToInt32(month)).ToListAsync();
+                }
+                else
+                {
+                    expenses = await _context.Expenses.FromSqlRaw("SELECT e.expense_guid, e.category_id, e.creation_date, e.expense_name, e.user_guid, e.expense_value FROM expenses AS e WHERE (e.user_guid = '" + guid + "') AND (date_part('year', e.creation_date) = " + year + ")").ToListAsync(); //no jest to gówno ale co zrobić jak to niżej nie chce działać
+                    //expenses = await _context.Expenses.Where(c => c.userGuid == guid && c.creationDate.Year == DateTime.Now.Year).ToListAsync();
+                }
+            }
+
             for (int i = 0; i < expenses.Count(); i++)
             {
                 expenses[i].Category = _context.Categories.Where(c => c.id == expenses[i].categoryId).Single();

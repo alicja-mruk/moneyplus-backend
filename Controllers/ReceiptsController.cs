@@ -19,7 +19,9 @@ namespace AlicjowyBackendv3.Controllers
             _context = context;
         }
 
+        /// <response code="200">Returns the list of all receipts or list of receipts selected by id or time range</response>
         [Route("/api/receipts/{id?}")]
+        [ProducesResponseType(typeof(ReceiptsReadDataTransferObject), StatusCodes.Status200OK)]
         [HttpGet]
         [Authorize]
         public async Task<ActionResult> GET(string? id, string? year, string? month, string? day)
@@ -81,10 +83,90 @@ namespace AlicjowyBackendv3.Controllers
             return Ok(receipts_list);
         }
 
+        //[Route("/api/receipts/edit")]
+        //[ProducesResponseType(typeof(ResponseMessageStatus), StatusCodes.Status200OK)]
+        //[ProducesResponseType(typeof(ResponseMessageStatus), StatusCodes.Status404NotFound)]
+        //[HttpPost, HttpPut, HttpDelete]
+        //[Authorize]
+        //public async Task<ActionResult<Receipt>> EDIT([FromBody] ReceiptsWriteDataTransferObject request)
+        //{
+        //    Receipt receipt = new Receipt();
+
+        //    var guid = User.FindFirstValue("user guid");
+        //    try
+        //    {
+        //        receipt.id = request.id;
+        //        receipt.categoryId = request.categoryId;
+        //        receipt.name = request.name;
+        //        receipt.value = Convert.ToDecimal(request.value);
+        //        int contains_date = DateTime.Compare(request.creationDate, new DateTime(0001, 1, 1, 00, 0, 0));
+        //        if (contains_date == 0)
+        //            receipt.creationDate = DateTime.Parse(DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"));
+        //        else
+        //            receipt.creationDate = request.creationDate;
+        //    }
+        //    catch (Exception ex)
+        //    {
+        //        return BadRequest(new ResponseMessageStatus { StatusCode = "400", Message = "Invalid data type" });
+        //    }
+
+        //    if (Request.Method == "POST")//add
+        //    {
+        //        Receipt receipt_add = new Receipt { id = Guid.NewGuid().ToString(), userGuid = guid, categoryId = receipt.categoryId, name = receipt.name, value = receipt.value, creationDate = receipt.creationDate };
+        //        try
+        //        {
+        //            _context.Receipts.Add(receipt_add);
+        //            await _context.SaveChangesAsync();
+        //        }
+        //        catch(DbUpdateException ex)
+        //        {
+        //            if (ex.InnerException is NpgsqlException sqlex)
+        //                if (sqlex.SqlState.Equals("23503"))
+        //                    return NotFound(new ResponseMessageStatus { StatusCode = "404", Message = "Category with this id does not exist" });
+        //        }
+        //        return Created(string.Empty, new ResponseMessageStatus { StatusCode = "201", Message = "Receipt created" });
+        //    }
+        //    else if (Request.Method == "DELETE")//remove
+        //    {
+        //        Receipt receipt_delete = await _context.Receipts.FindAsync(receipt.id);
+        //        if (receipt_delete == null)
+        //            return NotFound(new ResponseMessageStatus { StatusCode = "404", Message = "Receipt with this id does not exist" });
+        //        _context.Receipts.Remove(_context.Receipts.Find(receipt.id));
+        //        _context.SaveChanges();
+        //        return Ok(new ResponseMessageStatus { StatusCode = "200", Message = "Receipt deleted" });
+        //    }
+        //    else if (Request.Method == "PUT")//update
+        //    {
+        //        try
+        //        {
+        //            Receipt receipt_update = await _context.Receipts.FindAsync(receipt.id);
+        //            if (receipt.categoryId != null)
+        //                receipt_update.categoryId = receipt.categoryId;
+        //            if (receipt.name != null)
+        //                receipt_update.name = receipt.name;
+        //            if (receipt.value != 0)
+        //                receipt_update.value = Convert.ToDecimal(receipt.value);
+        //            await _context.SaveChangesAsync();
+        //        }
+        //        catch(Exception ex)
+        //        {
+        //            return NotFound(new ResponseMessageStatus { StatusCode = "404", Message = "Receipt with this id does not exist" });
+        //        }
+        //        return Ok(new ResponseMessageStatus { StatusCode = "200", Message = "Receipt updated" });
+        //    }
+        //    return StatusCode(405, new ResponseMessageStatus { StatusCode = "405", Message = "Method not allowed" });
+        //}
+
+        /// <response code="201">Receipt has been successfully created</response>
+        /// <response code="400">The data provided was in the wrong format</response>
+        /// <response code="404">This error means the user tries to select a category that does not exist</response>
         [Route("/api/receipts/edit")]
-        [HttpPost, HttpPut, HttpDelete]
+        [ProducesResponseType(typeof(ResponseMessageStatus), StatusCodes.Status201Created)]
+        [ProducesResponseType(typeof(ResponseMessageStatus), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(typeof(ResponseMessageStatus), StatusCodes.Status404NotFound)]
+        [HttpPost]
         [Authorize]
-        public async Task<ActionResult<Receipt>> EDIT([FromBody] ReceiptsWriteDataTransferObject request)
+        public async Task<ActionResult<Receipt>> Post([FromBody] ReceiptsWriteDataTransferObject request)
         {
             Receipt receipt = new Receipt();
 
@@ -106,51 +188,109 @@ namespace AlicjowyBackendv3.Controllers
                 return BadRequest(new ResponseMessageStatus { StatusCode = "400", Message = "Invalid data type" });
             }
 
-            if (Request.Method == "POST")//add
+            Receipt receipt_add = new Receipt { id = Guid.NewGuid().ToString(), userGuid = guid, categoryId = receipt.categoryId, name = receipt.name, value = receipt.value, creationDate = receipt.creationDate };
+            try
             {
-                Receipt receipt_add = new Receipt { id = Guid.NewGuid().ToString(), userGuid = guid, categoryId = receipt.categoryId, name = receipt.name, value = receipt.value, creationDate = receipt.creationDate };
-                try
-                {
-                    _context.Receipts.Add(receipt_add);
-                    await _context.SaveChangesAsync();
-                }
-                catch(DbUpdateException ex)
-                {
-                    if (ex.InnerException is NpgsqlException sqlex)
-                        if (sqlex.SqlState.Equals("23503"))
-                            return NotFound(new ResponseMessageStatus { StatusCode = "404", Message = "Category with this id does not exist" });
-                }
-                return Created(string.Empty, new ResponseMessageStatus { StatusCode = "201", Message = "Receipt created" });
+                _context.Receipts.Add(receipt_add);
+                await _context.SaveChangesAsync();
             }
-            else if (Request.Method == "DELETE")//remove
+            catch (DbUpdateException ex)
             {
-                Receipt receipt_delete = await _context.Receipts.FindAsync(receipt.id);
-                if (receipt_delete == null)
-                    return NotFound(new ResponseMessageStatus { StatusCode = "404", Message = "Receipt with this id does not exist" });
-                _context.Receipts.Remove(_context.Receipts.Find(receipt.id));
-                _context.SaveChanges();
-                return Ok(new ResponseMessageStatus { StatusCode = "200", Message = "Receipt deleted" });
+                if (ex.InnerException is NpgsqlException sqlex)
+                    if (sqlex.SqlState.Equals("23503"))
+                        return NotFound(new ResponseMessageStatus { StatusCode = "404", Message = "Category with this id does not exist" });
             }
-            else if (Request.Method == "PUT")//update
-            {
-                try
-                {
-                    Receipt receipt_update = await _context.Receipts.FindAsync(receipt.id);
-                    if (receipt.categoryId != null)
-                        receipt_update.categoryId = receipt.categoryId;
-                    if (receipt.name != null)
-                        receipt_update.name = receipt.name;
-                    if (receipt.value != 0)
-                        receipt_update.value = Convert.ToDecimal(receipt.value);
-                    await _context.SaveChangesAsync();
-                }
-                catch(Exception ex)
-                {
-                    return NotFound(new ResponseMessageStatus { StatusCode = "404", Message = "Receipt with this id does not exist" });
-                }
-                return Ok(new ResponseMessageStatus { StatusCode = "200", Message = "Receipt updated" });
-            }
-            return StatusCode(405, new ResponseMessageStatus { StatusCode = "405", Message = "Method not allowed" });
+            return Created(string.Empty, new ResponseMessageStatus { StatusCode = "201", Message = "Receipt created" });
         }
+
+        /// <response code="200">Receipt has been successfully updated</response>
+        /// <response code="400">The data provided was in the wrong format</response>
+        /// <response code="404">This error means the user is trying to update a receipt that does not exist</response>
+        [Route("/api/receipts/edit")]
+        [ProducesResponseType(typeof(ResponseMessageStatus), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ResponseMessageStatus), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(typeof(ResponseMessageStatus), StatusCodes.Status404NotFound)]
+        [HttpPut]
+        [Authorize]
+        public async Task<ActionResult<Receipt>> Put([FromBody] ReceiptsWriteDataTransferObject request)
+        {
+            Receipt receipt = new Receipt();
+
+            var guid = User.FindFirstValue("user guid");
+            try
+            {
+                receipt.id = request.id;
+                receipt.categoryId = request.categoryId;
+                receipt.name = request.name;
+                receipt.value = Convert.ToDecimal(request.value);
+                int contains_date = DateTime.Compare(request.creationDate, new DateTime(0001, 1, 1, 00, 0, 0));
+                if (contains_date == 0)
+                    receipt.creationDate = DateTime.Parse(DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"));
+                else
+                    receipt.creationDate = request.creationDate;
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new ResponseMessageStatus { StatusCode = "400", Message = "Invalid data type" });
+            }
+
+            try
+            {
+                Receipt receipt_update = await _context.Receipts.FindAsync(receipt.id);
+                if (receipt.categoryId != null)
+                    receipt_update.categoryId = receipt.categoryId;
+                if (receipt.name != null)
+                    receipt_update.name = receipt.name;
+                if (receipt.value != 0)
+                    receipt_update.value = Convert.ToDecimal(receipt.value);
+                await _context.SaveChangesAsync();
+            }
+            catch (Exception ex)
+            {
+                return NotFound(new ResponseMessageStatus { StatusCode = "404", Message = "Receipt with this id does not exist" });
+            }
+            return Ok(new ResponseMessageStatus { StatusCode = "200", Message = "Receipt updated" });
+        }
+
+        /// <response code="200">Receipt has been successfully deleted</response>
+        /// <response code="400">The data provided was in the wrong format</response>
+        /// <response code="404">This error means the user is trying to delete a receipt that does not exist</response>
+        [Route("/api/receipts/edit")]
+        [ProducesResponseType(typeof(ResponseMessageStatus), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ResponseMessageStatus), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(typeof(ResponseMessageStatus), StatusCodes.Status404NotFound)]
+        [HttpDelete]
+        [Authorize]
+        public async Task<ActionResult<Receipt>> Delete([FromBody] ReceiptsWriteDataTransferObject request)
+        {
+            Receipt receipt = new Receipt();
+
+            var guid = User.FindFirstValue("user guid");
+            try
+            {
+                receipt.id = request.id;
+                receipt.categoryId = request.categoryId;
+                receipt.name = request.name;
+                receipt.value = Convert.ToDecimal(request.value);
+                int contains_date = DateTime.Compare(request.creationDate, new DateTime(0001, 1, 1, 00, 0, 0));
+                if (contains_date == 0)
+                    receipt.creationDate = DateTime.Parse(DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"));
+                else
+                    receipt.creationDate = request.creationDate;
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new ResponseMessageStatus { StatusCode = "400", Message = "Invalid data type" });
+            }
+
+            Receipt receipt_delete = await _context.Receipts.FindAsync(receipt.id);
+            if (receipt_delete == null)
+                return NotFound(new ResponseMessageStatus { StatusCode = "404", Message = "Receipt with this id does not exist" });
+            _context.Receipts.Remove(_context.Receipts.Find(receipt.id));
+            _context.SaveChanges();
+            return Ok(new ResponseMessageStatus { StatusCode = "200", Message = "Receipt deleted" });
+        }
+
+        //W celu zmniejszenia redundancji pobieranie danych z requesta można wydzielić do osobnej funkcji
     }
 }

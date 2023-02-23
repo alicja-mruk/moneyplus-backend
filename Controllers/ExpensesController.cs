@@ -21,7 +21,9 @@ namespace AlicjowyBackendv3.Controllers
             _context = context;
         }
 
+        /// <response code="200">Returns the list of all expenses or list of expenses selected by id or time range</response>
         [Route("/api/expenses/{id?}")]
+        [ProducesResponseType(typeof(ExpensesReadDataTransferObject), StatusCodes.Status200OK)]
         [HttpGet]
         [Authorize]
         public async Task<ActionResult> GET(string? id, string? year, string? month, string? day)
@@ -84,10 +86,88 @@ namespace AlicjowyBackendv3.Controllers
             return Ok(expenses_list);
         }
 
+        //[Route("/api/expenses/edit")]
+        //[HttpPost, HttpPut, HttpDelete]
+        //[Authorize]
+        //public async Task<ActionResult<Expense>> EDIT([FromBody] ExpensesWriteDataTransferObject request)
+        //{
+        //    Expense expense = new Expense();
+
+        //    var guid = User.FindFirstValue("user guid");
+        //    try
+        //    {
+        //        expense.id = request.id;
+        //        expense.categoryId = request.categoryId;
+        //        expense.name = request.name;
+        //        expense.value = Convert.ToDecimal(request.value);
+        //        int contains_date = DateTime.Compare(request.creationDate, new DateTime(0001, 1, 1, 00, 0, 0));
+        //        if (contains_date == 0)
+        //            expense.creationDate = DateTime.Parse(DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"));
+        //        else
+        //            expense.creationDate = request.creationDate;
+        //    }
+        //    catch (Exception ex)
+        //    {
+        //        return BadRequest(new ResponseMessageStatus { StatusCode = "400", Message = "Invalid data type" });
+        //    }
+
+        //    if (Request.Method == "POST")//add
+        //    {
+        //        Expense expense_add = new Expense { id = Guid.NewGuid().ToString(), userGuid = guid, categoryId = expense.categoryId, name = expense.name, value = expense.value, creationDate = expense.creationDate };
+        //        try
+        //        {
+        //            _context.Expenses.Add(expense_add);
+        //            await _context.SaveChangesAsync();
+        //        }
+        //        catch(DbUpdateException ex)
+        //        {
+        //            if (ex.InnerException is NpgsqlException sqlex)
+        //                if (sqlex.SqlState.Equals("23503"))
+        //                    return NotFound(new ResponseMessageStatus { StatusCode = "404", Message = "Category with this id does not exist" });
+        //        }
+        //        return Created(string.Empty, new ResponseMessageStatus { StatusCode = "201", Message = "Expense created" });
+        //    }
+        //    else if (Request.Method == "DELETE")//remove
+        //    {
+        //        Expense expense_delete = await _context.Expenses.FindAsync(expense.id);
+        //        if (expense_delete == null)
+        //            return NotFound(new ResponseMessageStatus { StatusCode = "404", Message = "Expense with this id does not exist" });
+        //        _context.Expenses.Remove(_context.Expenses.Find(expense.id));
+        //        _context.SaveChanges();
+        //        return Ok(new ResponseMessageStatus { StatusCode = "200", Message = "Expense deleted" });
+        //    }
+        //    else if (Request.Method == "PUT")//update
+        //    {
+        //        try
+        //        {
+        //            Expense expense_update = await _context.Expenses.FindAsync(expense.id);
+        //            if(expense.categoryId != null)
+        //                expense_update.categoryId = expense.categoryId;
+        //            if (expense.name != null)
+        //                expense_update.name = expense.name;
+        //            if (expense.value != 0)
+        //                expense_update.value = Convert.ToDecimal(expense.value);
+        //            await _context.SaveChangesAsync();
+        //        }
+        //        catch(Exception ex)
+        //        {
+        //            return NotFound(new ResponseMessageStatus { StatusCode = "404", Message = "Expense with this id does not exist" });
+        //        }
+        //        return Ok(new ResponseMessageStatus { StatusCode = "200", Message = "Expense updated" });
+        //    }
+        //    return StatusCode(405, new ResponseMessageStatus { StatusCode = "405", Message = "Method not allowed" });
+        //}
+
+        /// <response code="201">Expense has been successfully created</response>
+        /// <response code="400">The data provided was in the wrong format</response>
+        /// <response code="404">This error means the user tries to select a category that does not exist</response>
         [Route("/api/expenses/edit")]
-        [HttpPost, HttpPut, HttpDelete]
+        [ProducesResponseType(typeof(ResponseMessageStatus), StatusCodes.Status201Created)]
+        [ProducesResponseType(typeof(ResponseMessageStatus), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(typeof(ResponseMessageStatus), StatusCodes.Status404NotFound)]
+        [HttpPost]
         [Authorize]
-        public async Task<ActionResult<Expense>> EDIT([FromBody] ExpensesWriteDataTransferObject request)
+        public async Task<ActionResult<Expense>> Post([FromBody] ExpensesWriteDataTransferObject request)
         {
             Expense expense = new Expense();
 
@@ -109,51 +189,109 @@ namespace AlicjowyBackendv3.Controllers
                 return BadRequest(new ResponseMessageStatus { StatusCode = "400", Message = "Invalid data type" });
             }
 
-            if (Request.Method == "POST")//add
+            Expense expense_add = new Expense { id = Guid.NewGuid().ToString(), userGuid = guid, categoryId = expense.categoryId, name = expense.name, value = expense.value, creationDate = expense.creationDate };
+            try
             {
-                Expense expense_add = new Expense { id = Guid.NewGuid().ToString(), userGuid = guid, categoryId = expense.categoryId, name = expense.name, value = expense.value, creationDate = expense.creationDate };
-                try
-                {
-                    _context.Expenses.Add(expense_add);
-                    await _context.SaveChangesAsync();
-                }
-                catch(DbUpdateException ex)
-                {
-                    if (ex.InnerException is NpgsqlException sqlex)
-                        if (sqlex.SqlState.Equals("23503"))
-                            return NotFound(new ResponseMessageStatus { StatusCode = "404", Message = "Category with this id does not exist" });
-                }
-                return Created(string.Empty, new ResponseMessageStatus { StatusCode = "201", Message = "Expense created" });
+                _context.Expenses.Add(expense_add);
+                await _context.SaveChangesAsync();
             }
-            else if (Request.Method == "DELETE")//remove
+            catch (DbUpdateException ex)
             {
-                Expense expense_delete = await _context.Expenses.FindAsync(expense.id);
-                if (expense_delete == null)
-                    return NotFound(new ResponseMessageStatus { StatusCode = "404", Message = "Expense with this id does not exist" });
-                _context.Expenses.Remove(_context.Expenses.Find(expense.id));
-                _context.SaveChanges();
-                return Ok(new ResponseMessageStatus { StatusCode = "200", Message = "Expense deleted" });
+                if (ex.InnerException is NpgsqlException sqlex)
+                    if (sqlex.SqlState.Equals("23503"))
+                        return NotFound(new ResponseMessageStatus { StatusCode = "404", Message = "Category with this id does not exist" });
             }
-            else if (Request.Method == "PUT")//update
-            {
-                try
-                {
-                    Expense expense_update = await _context.Expenses.FindAsync(expense.id);
-                    if(expense.categoryId != null)
-                        expense_update.categoryId = expense.categoryId;
-                    if (expense.name != null)
-                        expense_update.name = expense.name;
-                    if (expense.value != 0)
-                        expense_update.value = Convert.ToDecimal(expense.value);
-                    await _context.SaveChangesAsync();
-                }
-                catch(Exception ex)
-                {
-                    return NotFound(new ResponseMessageStatus { StatusCode = "404", Message = "Expense with this id does not exist" });
-                }
-                return Ok(new ResponseMessageStatus { StatusCode = "200", Message = "Expense updated" });
-            }
-            return StatusCode(405, new ResponseMessageStatus { StatusCode = "405", Message = "Method not allowed" });
+            return Created(string.Empty, new ResponseMessageStatus { StatusCode = "201", Message = "Expense created" });
         }
+
+        /// <response code="200">Expense has been successfully updated</response>
+        /// <response code="400">The data provided was in the wrong format</response>
+        /// <response code="404">This error means the user is trying to update an expense that does not exist</response>
+        [Route("/api/expenses/edit")]
+        [ProducesResponseType(typeof(ResponseMessageStatus), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ResponseMessageStatus), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(typeof(ResponseMessageStatus), StatusCodes.Status404NotFound)]
+        [HttpPut]
+        [Authorize]
+        public async Task<ActionResult<Expense>> Put([FromBody] ExpensesWriteDataTransferObject request)
+        {
+            Expense expense = new Expense();
+
+            var guid = User.FindFirstValue("user guid");
+            try
+            {
+                expense.id = request.id;
+                expense.categoryId = request.categoryId;
+                expense.name = request.name;
+                expense.value = Convert.ToDecimal(request.value);
+                int contains_date = DateTime.Compare(request.creationDate, new DateTime(0001, 1, 1, 00, 0, 0));
+                if (contains_date == 0)
+                    expense.creationDate = DateTime.Parse(DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"));
+                else
+                    expense.creationDate = request.creationDate;
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new ResponseMessageStatus { StatusCode = "400", Message = "Invalid data type" });
+            }
+
+            try
+            {
+                Expense expense_update = await _context.Expenses.FindAsync(expense.id);
+                if (expense.categoryId != null)
+                    expense_update.categoryId = expense.categoryId;
+                if (expense.name != null)
+                    expense_update.name = expense.name;
+                if (expense.value != 0)
+                    expense_update.value = Convert.ToDecimal(expense.value);
+                await _context.SaveChangesAsync();
+            }
+            catch (Exception ex)
+            {
+                return NotFound(new ResponseMessageStatus { StatusCode = "404", Message = "Expense with this id does not exist" });
+            }
+            return Ok(new ResponseMessageStatus { StatusCode = "200", Message = "Expense updated" });
+        }
+
+        /// <response code="200">Expense has been successfully deleted</response>
+        /// <response code="400">The data provided was in the wrong format</response>
+        /// <response code="404">This error means the user is trying to delete an expense that does not exist</response>
+        [Route("/api/expenses/edit")]
+        [ProducesResponseType(typeof(ResponseMessageStatus), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ResponseMessageStatus), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(typeof(ResponseMessageStatus), StatusCodes.Status404NotFound)]
+        [HttpDelete]
+        [Authorize]
+        public async Task<ActionResult<Expense>> Delete([FromBody] ExpensesWriteDataTransferObject request)
+        {
+            Expense expense = new Expense();
+
+            var guid = User.FindFirstValue("user guid");
+            try
+            {
+                expense.id = request.id;
+                expense.categoryId = request.categoryId;
+                expense.name = request.name;
+                expense.value = Convert.ToDecimal(request.value);
+                int contains_date = DateTime.Compare(request.creationDate, new DateTime(0001, 1, 1, 00, 0, 0));
+                if (contains_date == 0)
+                    expense.creationDate = DateTime.Parse(DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"));
+                else
+                    expense.creationDate = request.creationDate;
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new ResponseMessageStatus { StatusCode = "400", Message = "Invalid data type" });
+            }
+
+            Expense expense_delete = await _context.Expenses.FindAsync(expense.id);
+            if (expense_delete == null)
+                return NotFound(new ResponseMessageStatus { StatusCode = "404", Message = "Expense with this id does not exist" });
+            _context.Expenses.Remove(_context.Expenses.Find(expense.id));
+            _context.SaveChanges();
+            return Ok(new ResponseMessageStatus { StatusCode = "200", Message = "Expense deleted" });
+        }
+
+        //To samo do zrobienia co w receipts
     }
 }

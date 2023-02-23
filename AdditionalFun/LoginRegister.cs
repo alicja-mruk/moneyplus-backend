@@ -149,7 +149,7 @@ namespace AlicjowyBackendv3.AdditionalFun
             var refreshToken = new RefreshToken
             {
                 Token = Convert.ToBase64String(RandomNumberGenerator.GetBytes(64)),
-                Expires = DateTime.Parse(DateTime.Now.AddMinutes(2).ToString("yyyy-MM-dd HH:mm:ss")),
+                Expires = DateTime.Parse(DateTime.Now.AddDays(14).ToString("yyyy-MM-dd HH:mm:ss")),
                 Created = DateTime.Parse(DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"))
             };
 
@@ -170,7 +170,7 @@ namespace AlicjowyBackendv3.AdditionalFun
             var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha512Signature);
             var token = new JwtSecurityToken(
                 claims: claims,
-                expires: DateTime.Now.AddMinutes(1),
+                expires: DateTime.Now.AddDays(7),
                 signingCredentials: creds
                 );
             var jwt = new JwtSecurityTokenHandler().WriteToken(token);

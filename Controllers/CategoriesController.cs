@@ -18,7 +18,9 @@ namespace AlicjowyBackendv3.Controllers
             _context = context;
         }
 
+        /// <response code="200">Returns the list of all categories or single categories selected by id</response>
         [Route("api/categories/{id?}")]
+        [ProducesResponseType(typeof(Category), StatusCodes.Status200OK)]
         [HttpGet]
         [Authorize]
         public async Task<ActionResult> GET(int? id)
